@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>成分股估值 · 选股工具</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --line:#e8eaed; --text:#1a1d21; --muted:#8a9099;
+    --head:#f0f2f5; --hover:#f7f9fb;
+    --green:#12924f; --green-bg:#e6f5ec; --red:#d92d20; --red-bg:#fdecea;
+    --amber:#b7791f; --amber-bg:#fdf3e2; --blue:#2563eb; --accent:#111827;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0e1116; --card:#161a20; --line:#262c34; --text:#e6e9ee; --muted:#8b93a0;
+      --head:#1c2129; --hover:#1b2027;
+      --green:#3ecf8e; --green-bg:#123024; --red:#ff6b60; --red-bg:#3a1c1a;
+      --amber:#e0a53f; --amber-bg:#372a12; --blue:#5b8dff; --accent:#e6e9ee;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei",Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1280px;margin:0 auto;padding:20px 16px 60px}
+  h1{font-size:22px;font-weight:700;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
+  .dot.ok{background:var(--green)} .dot.stale{background:var(--amber)} .dot.err{background:var(--red)}
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--text);
+    padding:7px 14px;border-radius:8px;transition:.15s}
+  button:hover{background:var(--hover)}
+  button.primary{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .tab{padding:5px 12px;border-radius:20px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:13px;cursor:pointer}
+  .tab.active{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600}
+  .prog{height:4px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:14px;display:none}
+  .prog.show{display:block}
+  .prog > i{display:block;height:100%;width:0;background:var(--blue);transition:width .3s}
+  .tablewrap{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+  table{border-collapse:collapse;width:100%;min-width:1080px}
+  th,td{padding:11px 12px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+  th:nth-child(-n+4),td:nth-child(-n+4){text-align:left}
+  thead th{position:sticky;top:0;background:var(--head);font-weight:600;font-size:12.5px;color:var(--muted);
+    cursor:pointer;user-select:none;z-index:2}
+  thead th:hover{color:var(--text)}
+  th .ar{font-size:10px;opacity:.5}
+  tbody tr:hover{background:var(--hover)}
+  tbody tr:last-child td{border-bottom:none}
+  .code{font-weight:700;letter-spacing:.3px}
+  .name{color:var(--muted);font-size:13px}
+  .sec{font-size:12px;color:var(--muted)}
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+  .pill{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+  .p-green{color:var(--green);background:var(--green-bg)}
+  .p-red{color:var(--red);background:var(--red-bg)}
+  .p-amber{color:var(--amber);background:var(--amber-bg)}
+  .mut{color:var(--muted)}
+  .seed{border-bottom:1px dashed var(--muted)}
+  .bars{display:inline-flex;align-items:center;gap:7px;justify-content:flex-end}
+  .track{width:52px;height:6px;background:var(--line);border-radius:4px;overflow:hidden;position:relative}
+  .track > i{display:block;height:100%;border-radius:4px}
+  .foot{margin-top:16px;font-size:12px;color:var(--muted);line-height:1.7}
+  .foot b{color:var(--text)}
+  code{background:var(--head);padding:1px 5px;border-radius:4px;font-size:12px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:10px 2px 0}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  a{color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>成分股估值 · 选股工具</h1>
+  <div class="sub">
+    <span id="status"><span class="dot stale"></span>加载中…</span>
+    <span id="asof"></span>
+    <span>数据源：Massive / Polygon REST（Starter）</span>
+  </div>
+
+  <div class="bar">
+    <button class="primary" id="refresh" onclick="refreshAll()">↻ 刷新数据</button>
+    <button onclick="clearCache()">清空缓存</button>
+    <span class="mut" id="ratenote" style="font-size:12px"></span>
+  </div>
+  <div class="prog" id="prog"><i></i></div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr id="head"></tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
+
+  <div class="legend">
+    <span><b>RSI</b>：<span style="color:var(--red)">≥70 超买</span> · <span style="color:var(--green)">≤30 超卖</span></span>
+    <span><b>情绪评分</b>：0.4×RSI + 0.3×52周位置 + 0.3×趋势(均线)</span>
+    <span><span class="seed" style="border-bottom:1px dashed">虚线</span> = 快照种入值（非实时）</span>
+    <span><b style="color:var(--amber)">*</b> = 数据源财报滞后，PE/分位偏高（悬停看详情）</span>
+  </div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script src="config.js"></script>
+<script>
+/* ============================================================
+   配置
+   ============================================================ */
+const API_KEY = (typeof window!=="undefined" && (window.MASSIVE_API_KEY||"")).trim();  // 来自 config.js（不入 git）
+const BASE = "https://api.polygon.io";
+const CONCURRENCY = 4;             // Starter 无限速，适度并发
+const FIN_TTL_DAYS = 20;           // 财报缓存天数（季度才变）
+const CACHE_KEY = "screener_cache_v3";   // v3: 5年分位加入拆股还原
+
+/* 关注标的：代码 / 中文名 / 板块分组(行业均值) / ETF标记 /
+   fwd = 动态PE(快照种入,Massive无预期数据) / pct = 近5年分位种入值(仅作实时算不出时的兜底) */
+const UNIVERSE = [
+  {t:"AAPL",  n:"苹果",       g:"科技硬件", fwd:37.09, pct:98},
+  {t:"MSFT",  n:"微软",       g:"科技软件", fwd:21.06, pct:3},
+  {t:"GOOGL", n:"谷歌-A",     g:"互联网",   fwd:26.91, pct:59},
+  {t:"AMZN",  n:"亚马逊",     g:"互联网",   fwd:29.17, pct:9},
+  {t:"NVDA",  n:"英伟达",     g:"半导体",   fwd:20.09, pct:1},
+  {t:"META",  n:"Meta",       g:"互联网",   fwd:20.46, pct:31},
+  {t:"TSLA",  n:"特斯拉",     g:"汽车",     fwd:289.13, pct:85},
+  {t:"MCD",   n:"麦当劳",     g:"餐饮消费", fwd:null,  pct:null},
+  {t:"TSM",   n:"台积电",     g:"半导体",   fwd:null,  pct:null},
+  {t:"JPM",   n:"摩根大通",   g:"银行",     fwd:14.73, pct:83},
+  {t:"CEG",   n:"星座能源",   g:"公用电力", fwd:null,  pct:null},
+  {t:"AVGO",  n:"博通",       g:"半导体",   fwd:28.21, pct:60},
+  {t:"BRK.B", n:"伯克希尔-B", g:"综合金融", fwd:23.91, pct:72},
+  {t:"LEU",   n:"Centrus能源",g:"核燃料",   fwd:null,  pct:null},
+  {t:"LLY",   n:"礼来",       g:"制药",     fwd:34.58, pct:18},
+  {t:"QQQ",   n:"纳指100ETF", g:"ETF",      fwd:null,  pct:null, etf:true},
+  {t:"SPY",   n:"标普500ETF", g:"ETF",      fwd:null,  pct:null, etf:true},
+];
+
+const COLS = [
+  {k:"idx",  label:"#",        sortable:false},
+  {k:"t",    label:"代码"},
+  {k:"n",    label:"名称"},
+  {k:"g",    label:"板块"},
+  {k:"mktcap",label:"市值",     fmt:fmtCap},
+  {k:"peTTM",label:"市盈率TTM", fmt:v=>fmtNum(v,2)},
+  {k:"fwd",  label:"动态市盈率",fmt:v=>fmtNum(v,2), seed:true},
+  {k:"indPE",label:"行业均值PE",fmt:v=>fmtNum(v,2)},
+  {k:"pct",  label:"近5年分位", fmt:fmtPct},
+  {k:"rsi",  label:"RSI(14)",   fmt:v=>fmtNum(v,1)},
+  {k:"senti",label:"情绪评分",  fmt:v=>fmtNum(v,0)},
+];
+
+/* ============================================================
+   状态
+   ============================================================ */
+let ROWS = [];
+let CACHE = load();      // {data:{T:{...}}, fin:{T:{quarters,ts}}, ts}
+let sortKey = "mktcap", sortDir = -1, filter = "全部";
+
+function load(){ try{return JSON.parse(localStorage.getItem(CACHE_KEY))||{data:{},fin:{},ts:0}}catch(e){return{data:{},fin:{},ts:0}} }
+function save(){ localStorage.setItem(CACHE_KEY, JSON.stringify(CACHE)); }
+function clearCache(){ if(confirm("清空本地缓存？")){ localStorage.removeItem(CACHE_KEY); CACHE={data:{},fin:{},ts:0}; compute(); render(); } }
+
+/* ============================================================
+   工具
+   ============================================================ */
+function fmtNum(v,d){ return (v==null||isNaN(v))?"—":Number(v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function fmtPct(v){ return v==null?"—":v+"%"; }
+function fmtCap(v){ if(v==null)return"—"; if(v>=1e12)return(v/1e12).toFixed(2)+"万亿"; if(v>=1e8)return(v/1e8).toFixed(0)+"亿"; return v.toLocaleString(); }
+function daysSince(ts){ return (Date.now()-ts)/864e5; }
+const avg = a => a.reduce((x,y)=>x+y,0)/a.length;
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+function ymd(d){ return d.toISOString().slice(0,10); }
+function ymdMs(ms){ return new Date(ms).toISOString().slice(0,10); }
+/* bisect_right on sorted string array */
+function upperBound(arr,x){ let lo=0,hi=arr.length; while(lo<hi){const m=(lo+hi)>>1; if(arr[m]<=x)lo=m+1; else hi=m;} return lo; }
+
+/* Wilder RSI(14) */
+function calcRSI(cl, period=14){
+  if(cl.length<period+1) return null;
+  let g=0,l=0;
+  for(let i=1;i<=period;i++){ const d=cl[i]-cl[i-1]; if(d>=0)g+=d; else l-=d; }
+  g/=period; l/=period;
+  for(let i=period+1;i<cl.length;i++){ const d=cl[i]-cl[i-1]; g=(g*(period-1)+(d>0?d:0))/period; l=(l*(period-1)+(d<0?-d:0))/period; }
+  return l===0?100:100-100/(1+g/l);
+}
+/* 情绪评分 0-100 */
+function sentiment(rsi,price,hi52,lo52,ma50,ma200){
+  if(rsi==null||price==null) return null;
+  const pos=(hi52>lo52)?(price-lo52)/(hi52-lo52)*100:50;
+  let trend=0; if(ma50&&price>ma50)trend+=50; if(ma200&&price>ma200)trend+=50;
+  return Math.max(0,Math.min(100,0.4*rsi+0.3*pos+0.3*trend));
+}
+
+/* ============================================================
+   数据抓取（Starter：无限速 → 并发池）
+   ============================================================ */
+async function api(path){
+  const url=`${BASE}${path}${path.includes("?")?"&":"?"}apiKey=${API_KEY}`;
+  const res=await fetch(url);
+  if(!res.ok){ const t=await res.text(); throw new Error(res.status+" "+t.slice(0,120)); }
+  return res.json();
+}
+
+async function getFinancials(T){
+  let fin=CACHE.fin[T];
+  if(fin && daysSince(fin.ts)<FIN_TTL_DAYS && fin.splits) return fin;
+  const f=await api(`/vX/reference/financials?ticker=${T}&timeframe=quarterly&limit=24`);
+  const qs=[];
+  for(const r of (f.results||[])){
+    const inc=r.financials?.income_statement; if(!inc) continue;
+    const eps=inc.diluted_earnings_per_share?.value ?? null;
+    const ni =inc.net_income_loss_attributable_to_parent?.value ?? inc.net_income_loss?.value ?? null;
+    qs.push([r.end_date, eps, ni]);
+  }
+  qs.sort((a,b)=> a[0]<b[0]?-1:1);
+  let splits=[];
+  try{ const s=await api(`/v3/reference/splits?ticker=${T}&limit=50`);
+    splits=(s.results||[]).map(x=>[x.execution_date, x.split_to/x.split_from]); }catch(e){}
+  fin={ quarters:qs, splits, ts:Date.now() };
+  CACHE.fin[T]=fin;
+  return fin;
+}
+
+/* 近5年 PE 分位：复权日线 ÷ 拆股还原后的滚动TTM摊薄EPS，取当前PE的百分位。
+   拆股还原：某季 EPS 除以其 end_date 之后发生的所有拆股因子之积 → 统一到当前股本口径，
+   与复权价格口径一致，避免拆股过渡窗口产生垃圾PE值(NVDA/AVGO 10拆1曾把分位算高)。 */
+function pctile5(bars, quarters, splits, curPE){
+  const ends=quarters.map(q=>q[0]);
+  const eps =quarters.map(q=>{
+    if(q[1]==null) return null;
+    let f=1; for(const s of (splits||[])){ if(s[0]>q[0]) f*=s[1]; }
+    return q[1]/f;
+  });
+  if(eps.some(e=>e==null)) return null;         // 有缺失季度则放弃(如伯克希尔无摊薄EPS)
+  const pes=[];
+  for(const b of bars){
+    const i=upperBound(ends, ymdMs(b.t));
+    if(i<4) continue;
+    const ttm=eps[i-4]+eps[i-3]+eps[i-2]+eps[i-1];
+    if(ttm>0) pes.push(b.c/ttm);
+  }
+  if(pes.length<60) return null;
+  const cur=(curPE!=null&&curPE>0)?curPE:pes[pes.length-1];
+  return Math.round(pes.filter(x=>x<=cur).length/pes.length*100);
+}
+
+async function fetchTicker(u){
+  const T=u.t, rec={t:T}, today=new Date();
+  // A) 技术面：复权日线 ~1.5年 → 价格/RSI/52周/均线
+  const aFrom=ymd(new Date(Date.now()-520*864e5));
+  const adj=await api(`/v2/aggs/ticker/${T}/range/1/day/${aFrom}/${ymd(today)}?adjusted=true&sort=asc&limit=600`);
+  const ab=adj.results||[];
+  if(ab.length){
+    const cl=ab.map(b=>b.c);
+    rec.price=cl[cl.length-1];
+    const win=cl.slice(-252);
+    rec.hi52=Math.max(...win); rec.lo52=Math.min(...win);
+    rec.ma50 = cl.length>=50 ? avg(cl.slice(-50)) : null;
+    rec.ma200= cl.length>=200? avg(cl.slice(-200)): null;
+    rec.rsi=calcRSI(cl);
+    rec.asof=ymdMs(ab[ab.length-1].t);
+  }
+  // B) ticker details → 权威市值
+  try{ const d=await api(`/v3/reference/tickers/${T}`); rec.mktcap=d.results?.market_cap??null; rec.sic=d.results?.sic_description??null; }
+  catch(e){ rec.mktcap=null; }
+  // C) 财报 → 当前TTM EPS/净利润 → PE TTM；D) 5年分位
+  if(!u.etf){
+    try{
+      const fin=await getFinancials(T);
+      const q=fin.quarters;
+      // 财报滞后检测：数据源最新季度过旧(>140天)→TTM 可能缺最新季度，PE/分位会偏
+      rec.finAsof = q.length? q[q.length-1][0] : null;
+      rec.finStale = rec.finAsof ? ((Date.now()-Date.parse(rec.finAsof))/864e5 > 140) : false;
+      const last4=q.slice(-4);
+      const eps=(last4.length===4 && last4.every(x=>x[1]!=null))? last4.reduce((s,x)=>s+x[1],0):null;
+      const ni =(last4.length===4 && last4.every(x=>x[2]!=null))? last4.reduce((s,x)=>s+x[2],0):null;
+      if(eps && eps>0 && rec.price) rec.peTTM=rec.price/eps;
+      else if(ni && ni>0 && rec.mktcap) rec.peTTM=rec.mktcap/ni;
+      else rec.peTTM=null;
+      // 5年分位：复权5年日线 + 拆股还原EPS
+      const bFrom=ymd(new Date(Date.now()-(5*365+20)*864e5));
+      const raw=await api(`/v2/aggs/ticker/${T}/range/1/day/${bFrom}/${ymd(today)}?adjusted=true&sort=asc&limit=2000`);
+      rec.pct=pctile5(raw.results||[], q, fin.splits||[], rec.peTTM);
+    }catch(e){ rec.peTTM=null; }
+  }
+  rec.ts=Date.now();
+  return rec;
+}
+
+/* 并发池 */
+async function pool(items, worker, onEach){
+  let idx=0, done=0;
+  async function run(){
+    while(idx<items.length){
+      const i=idx++;
+      try{ await worker(items[i]); }catch(e){ console.error(items[i].t,e); }
+      done++; onEach(done);
+    }
+  }
+  await Promise.all(Array.from({length:Math.min(CONCURRENCY,items.length)}, run));
+}
+
+async function refreshAll(){
+  const btn=document.getElementById("refresh"); btn.disabled=true;
+  const prog=document.getElementById("prog"); prog.classList.add("show");
+  const barEl=prog.querySelector("i");
+  setStatus("stale","刷新中…");
+  document.getElementById("ratenote").textContent="Starter 无限速 · 并发抓取中…";
+  await pool(UNIVERSE, async u=>{
+    try{ CACHE.data[u.t]=await fetchTicker(u); }
+    catch(e){ CACHE.data[u.t]=Object.assign({t:u.t,err:String(e)},CACHE.data[u.t]||{}); }
+    CACHE.ts=Date.now(); save();
+  }, done=>{
+    barEl.style.width=(done/UNIVERSE.length*100)+"%";
+    compute(); render();
+  });
+  prog.classList.remove("show"); btn.disabled=false;
+  document.getElementById("ratenote").textContent="";
+  setStatus("ok","已更新");
+}
+
+/* ============================================================
+   派生列（行业均值PE） + 情绪
+   ============================================================ */
+function compute(){
+  ROWS=UNIVERSE.map(u=>{
+    const d=CACHE.data[u.t]||{};
+    const pct = (d.pct!=null)? d.pct : u.pct;      // 实时算不出时用种入
+    return {
+      t:u.t, n:u.n, g:u.g, etf:!!u.etf,
+      mktcap:d.mktcap??null, peTTM:d.peTTM??null, fwd:u.fwd,
+      pct, pctSeed:(d.pct==null && u.pct!=null),
+      rsi:d.rsi??null, price:d.price, hi52:d.hi52, lo52:d.lo52, ma50:d.ma50, ma200:d.ma200,
+      asof:d.asof, err:d.err, finStale:d.finStale, finAsof:d.finAsof,
+      senti:sentiment(d.rsi,d.price,d.hi52,d.lo52,d.ma50,d.ma200),
+    };
+  });
+  const byG={};
+  ROWS.forEach(r=>{ if(r.peTTM>0)(byG[r.g]=byG[r.g]||[]).push(r.peTTM); });
+  ROWS.forEach(r=>{ const a=byG[r.g]; r.indPE=(a&&a.length>=2)?avg(a):null; });
+}
+
+/* ============================================================
+   渲染
+   ============================================================ */
+function setStatus(cls,txt){ document.getElementById("status").innerHTML=`<span class="dot ${cls}"></span>${txt}`; }
+function classifyPE(pe,ind){ if(pe==null||ind==null)return""; return pe>ind*1.15?"p-red":pe<ind*0.85?"p-green":""; }
+function classifyRSI(v){ if(v==null)return""; return v>=70?"p-red":v<=30?"p-green":""; }
+function classifyPct(v){ if(v==null)return""; return v>=80?"p-red":v<=20?"p-green":"p-amber"; }
+function classifySenti(v){ if(v==null)return""; return v>=70?"p-green":v<45?"p-red":"p-amber"; }
+
+function cell(r,c,i){
+  if(c.k==="idx") return `<td class="mut num">${i+1}</td>`;
+  if(c.k==="t") return `<td><span class="code">${r.t}</span></td>`;
+  if(c.k==="n") return `<td><span class="name">${r.n}</span></td>`;
+  if(c.k==="g") return `<td><span class="sec">${r.g}</span></td>`;
+  const v=r[c.k];
+  const disp=c.fmt?c.fmt(v):(v??"—");
+  const staleMark=(r.finStale&&(c.k==="peTTM"||c.k==="pct"))
+    ? `<sup title="财报滞后：数据源最新季度 ${r.finAsof}，缺最新季报，TTM偏旧、PE/分位可能偏高；数据源补上后自动修正" style="color:var(--amber);font-weight:700">*</sup>` : "";
+  if(c.k==="peTTM") return `<td class="num"><span class="pill ${classifyPE(v,r.indPE)}">${disp}</span>${staleMark}</td>`;
+  if(c.k==="rsi")   return `<td class="num"><span class="pill ${classifyRSI(v)}">${disp}</span></td>`;
+  if(c.k==="pct"){
+    if(v==null) return `<td class="num mut">—</td>`;
+    return `<td class="num${r.pctSeed?' seed':''}"><span class="pill ${classifyPct(v)}">${disp}</span>${staleMark}</td>`;
+  }
+  if(c.k==="senti"){
+    if(v==null) return `<td class="num mut">—</td>`;
+    const cl=classifySenti(v), col=cl==="p-green"?"var(--green)":cl==="p-red"?"var(--red)":"var(--amber)";
+    return `<td class="num"><span class="bars"><span class="track"><i style="width:${v}%;background:${col}"></i></span><b style="color:${col}">${disp}</b></span></td>`;
+  }
+  const seed=c.seed?" seed":"";
+  return `<td class="num${seed}">${disp}</td>`;
+}
+
+function render(){
+  const groups=["全部",...new Set(UNIVERSE.map(u=>u.g))];
+  document.getElementById("tabs").innerHTML=groups.map(g=>
+    `<div class="tab ${g===filter?'active':''}" onclick="setFilter('${g}')">${g}</div>`).join("");
+  document.getElementById("head").innerHTML=COLS.map(c=>{
+    const ar=c.sortable===false?"":`<span class="ar">${sortKey===c.k?(sortDir<0?"▼":"▲"):"⇅"}</span>`;
+    return `<th ${c.sortable===false?"":`onclick="setSort('${c.k}')"`}>${c.label} ${ar}</th>`;
+  }).join("");
+  let rows=ROWS.filter(r=> filter==="全部"||r.g===filter);
+  rows.sort((a,b)=>{ let x=a[sortKey],y=b[sortKey]; if(x==null)return 1; if(y==null)return -1;
+    if(typeof x==="string")return sortDir*x.localeCompare(y); return sortDir*(x-y); });
+  document.getElementById("body").innerHTML=rows.map((r,i)=>
+    `<tr title="${r.err?('错误: '+r.err):(r.asof?('数据截至 '+r.asof+(r.price?' · 收$'+r.price.toFixed(2):'')):'未刷新')}">`
+    +COLS.map(c=>cell(r,c,i)).join("")+`</tr>`).join("");
+  const asofs=ROWS.map(r=>r.asof).filter(Boolean).sort();
+  document.getElementById("asof").textContent=asofs.length?"收盘数据 "+asofs[asofs.length-1]:"";
+  if(CACHE.ts){ const d=daysSince(CACHE.ts); setStatus(d>2?"stale":"ok", d<1?"刚刚更新":Math.floor(d)+"天前更新"); }
+  else setStatus("stale","未刷新 · 点『刷新数据』");
+  renderFoot();
+}
+function renderFoot(){
+  document.getElementById("foot").innerHTML=`
+    <b>数据说明</b>（Massive/Polygon Starter，无限速，按最近收盘）<br>
+    • <b>市值</b>：ticker details 权威值。<b>RSI/52周/均线/情绪评分</b>：复权日线计算。<br>
+    • <b>市盈率TTM</b> = 收盘价 ÷ 摊薄EPS(TTM)；无摊薄EPS时 = 市值 ÷ 归母净利润(如伯克希尔)。校验 AAPL/NVDA/AVGO/BRK.B 与富途一致。<br>
+    • <b>近5年分位</b>：<u>实时计算</u> = 未复权5年日线 ÷ 当期滚动TTM摊薄EPS 得历史PE序列，取当前PE百分位。AAPL/MSFT/TSLA 与富途吻合；<span class="mut">盈利波动大或含一次性项目的(NVDA/JPM/LLY)因GAAP口径会与富途(非GAAP)有差异</span>。<span class="seed" style="border-bottom:1px dashed">虚线</span>=算不出时用富途种入值。<br>
+    • <b class="seed" style="border-bottom:1px dashed">动态市盈率</b>：Massive 无分析师预期数据，仍用 2026-07-17 富途快照种入（变化慢）。<br>
+    • <b style="color:var(--amber)">*号</b>：数据源(Massive)该股财报滞后、缺最新季度(如 GOOGL 迄今最新仅到 2025-12-31)，TTM 偏旧使 PE/分位偏高；数据源补上后自动修正。<br>
+    • <b>行业均值PE</b> = 自选股中同板块(≥2支)的 PE TTM 均值。<b>ETF(QQQ/SPY)</b> 无财报，仅价格类指标。<br>
+    • 结果缓存于浏览器本地，财报缓存 ${FIN_TTL_DAYS} 天；重开即时显示。`;
+}
+function setFilter(g){ filter=g; render(); }
+function setSort(k){ if(sortKey===k)sortDir*=-1; else {sortKey=k; sortDir=-1;} render(); }
+
+/* ============================================================
+   启动
+   ============================================================ */
+compute(); render();
+if(!API_KEY){
+  setStatus("err","缺少 API key");
+  document.getElementById("foot").innerHTML=
+    `<b style="color:var(--red)">未检测到 API key。</b> 请在本目录复制 <code>config.example.js</code> 为 <code>config.js</code>，填入你的 Massive key 后刷新页面。`;
+  document.getElementById("refresh").disabled=true;
+}else if(!CACHE.ts){ setTimeout(refreshAll,400); }
+</script>
+</body>
+</html>
