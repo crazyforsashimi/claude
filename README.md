@@ -9,6 +9,14 @@
 
 > `config.js` 已被 `.gitignore` 忽略，**永不进 git**——所以仓库里不含任何密钥，推到公开/私有仓库都安全。
 
+## 云端访问（其他设备 / 手机）
+已部署 GitHub Pages：**https://crazyforsashimi.github.io/claude/**
+
+- 页面**不含 key**（`config.js` 不部署）。任意设备首次打开会提示**输入一次 API key**，仅存该设备浏览器 `localStorage`，不上传、不进仓库。
+- 之后随时可点工具栏 **🔑 API key** 更换。
+- 陌生人打开网址没有你的 key → 只是空壳、拉不到数据，**“需要 key”即天然门槛**。
+- key 解析优先级：本地 `config.js` > 该设备 `localStorage`。
+
 ---
 
 ## 关注标的（17 支）
@@ -83,6 +91,7 @@ stock-screener/
 ```
 
 ## 变更记录
+- **v6（2026-07-20）**：支持云端访问。部署 GitHub Pages；无 config.js 时（如云端）弹出 key 输入框，key 存该设备 localStorage；工具栏加 🔑 换 key 按钮。
 - **v5（2026-07-20）**：API key 从 `index.html` 剥离到 `config.js`（`.gitignore` 忽略）；重置 git 历史，确保仓库任何提交都不含密钥，可安全推送。
 - **v4（2026-07-20）**：加「财报滞后」检测。数据源某股最新季度 >140 天时（如 GOOGL Polygon 迄今最新仅到 2025-12-31、缺 2026 季报），TTM 偏旧会使 PE/分位偏高——在 PE/分位加 `*` 警告星号 + 悬停说明，数据源补上后自动修正。
 - **v3（2026-07-20）**：修复拆股导致的 5年分位偏差。历史 EPS 按拆股因子还原到当前股本口径 + 改用复权价，避免拆股过渡窗口的垃圾PE。校验：**NVDA 35%→2%（图1%）、AVGO 77%→61%（图60%）**，AAPL/MSFT/TSLA 不变。

@@ -83,8 +83,21 @@
   <div class="bar">
     <button class="primary" id="refresh" onclick="refreshAll()">↻ 刷新数据</button>
     <button onclick="clearCache()">清空缓存</button>
+    <button onclick="showKeyGate()">🔑 API key</button>
     <span class="mut" id="ratenote" style="font-size:12px"></span>
   </div>
+
+  <div id="keygate" style="display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px">
+    <b>输入 Massive / Polygon API key</b>
+    <div class="mut" style="font-size:12px;margin:6px 0 10px">仅保存在<b>本设备浏览器</b>(localStorage)，不上传、不进仓库。去 <a href="https://massive.com" target="_blank" rel="noopener">massive.com</a> 免费/付费获取。</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input id="keyinput" type="password" placeholder="粘贴你的 API key" autocomplete="off"
+        style="flex:1;min-width:220px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font:inherit"
+        onkeydown="if(event.key==='Enter')saveKey()">
+      <button class="primary" onclick="saveKey()">保存并刷新</button>
+    </div>
+  </div>
+
   <div class="prog" id="prog"><i></i></div>
 
   <div class="tabs" id="tabs"></div>
@@ -111,7 +124,7 @@
 /* ============================================================
    配置
    ============================================================ */
-const API_KEY = (typeof window!=="undefined" && (window.MASSIVE_API_KEY||"")).trim();  // 来自 config.js（不入 git）
+let API_KEY = (((typeof window!=="undefined" && window.MASSIVE_API_KEY) || localStorage.getItem("massive_key") || "")).trim();  // config.js 优先(本地)，否则本设备 localStorage(云端)
 const BASE = "https://api.polygon.io";
 const CONCURRENCY = 4;             // Starter 无限速，适度并发
 const FIN_TTL_DAYS = 20;           // 财报缓存天数（季度才变）
@@ -412,14 +425,29 @@ function setFilter(g){ filter=g; render(); }
 function setSort(k){ if(sortKey===k)sortDir*=-1; else {sortKey=k; sortDir=-1;} render(); }
 
 /* ============================================================
+   API key 输入（云端：每设备存 localStorage）
+   ============================================================ */
+function showKeyGate(){
+  const g=document.getElementById("keygate"); g.style.display="block";
+  const inp=document.getElementById("keyinput"); inp.value=API_KEY||""; inp.focus();
+}
+function saveKey(){
+  const k=(document.getElementById("keyinput").value||"").trim();
+  if(!k){ return; }
+  localStorage.setItem("massive_key",k); API_KEY=k;
+  document.getElementById("keygate").style.display="none";
+  document.getElementById("refresh").disabled=false;
+  refreshAll();
+}
+
+/* ============================================================
    启动
    ============================================================ */
 compute(); render();
 if(!API_KEY){
-  setStatus("err","缺少 API key");
-  document.getElementById("foot").innerHTML=
-    `<b style="color:var(--red)">未检测到 API key。</b> 请在本目录复制 <code>config.example.js</code> 为 <code>config.js</code>，填入你的 Massive key 后刷新页面。`;
+  setStatus("err","需要 API key");
   document.getElementById("refresh").disabled=true;
+  showKeyGate();
 }else if(!CACHE.ts){ setTimeout(refreshAll,400); }
 </script>
 </body>
