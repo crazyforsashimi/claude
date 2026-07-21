@@ -120,8 +120,10 @@ def notify(title: str, content: str):
     if os.environ.get("SMTP_HOST"):
         import smtplib
         from email.mime.text import MIMEText
+        from email.header import Header
         msg = MIMEText(content, "plain", "utf-8")
-        msg["Subject"], msg["From"], msg["To"] = title, os.environ["SMTP_USER"], os.environ["SMTP_TO"]
+        msg["Subject"] = str(Header(title, "utf-8"))   # 中文/emoji 标题需编码，否则乱码
+        msg["From"], msg["To"] = os.environ["SMTP_USER"], os.environ["SMTP_TO"]
         with smtplib.SMTP_SSL(os.environ["SMTP_HOST"], int(os.environ.get("SMTP_PORT", 465))) as srv:
             srv.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
             srv.send_message(msg)
