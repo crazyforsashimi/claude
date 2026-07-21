@@ -125,6 +125,7 @@
     <span><b style="color:var(--blue)">ˢ</b> = 已用 SEC 官方 EPS 修正（Polygon 漏收季报）</span>
     <span><b style="color:var(--amber)">*</b> = 数据源财报滞后（悬停看详情）</span>
     <span><span class="pill sig-buy">买入</span>/<span class="pill sig-trim">减仓</span> = 回溯验证的大机会（悬停看依据）：买入 RSI&lt;25（&lt;20=强买入★）深度超卖；卖出 PE五年分位&gt;95 且 RSI&gt;70（高估值+超买，仅非高波动股，供参考非做空）</span>
+    <span><span class="pill p-green">看多</span>/<span class="pill mut">观望</span>/<span class="pill p-red">看空</span> = 当日技术面 6 指标(均线/位置/MACD/RSI/KDJ/BOLL)投票综合，悬停看构成</span>
   </div>
 
   <div class="foot" id="foot"></div>
@@ -183,6 +184,7 @@ const COLS = [
   {k:"n",    label:"名称"},
   {k:"g",    label:"板块"},
   {k:"signal",label:"机会",     sortable:false},
+  {k:"view",  label:"看法",     sortable:false},
   {k:"mktcap",label:"市值",     fmt:fmtCap},
   {k:"peTTM",label:"市盈率TTM", fmt:v=>fmtNum(v,2)},
   {k:"indPE",label:"行业均值PE",fmt:v=>fmtNum(v,2)},
@@ -469,6 +471,46 @@ function signalOf(r){
   }
   return null;
 }
+/* 当日技术面综合看法——不追求高准确率，只把6个维度(均线排列/长期位置/MACD/RSI/KDJ/BOLL)投票汇总成倾向。
+   与"机会"列互补：机会=稀有高胜率极端信号，看法=每日技术面粗略倾向。悬停看多空构成。 */
+function viewOf(r){
+  const rsi=r.rsi, m=r.macd, k=r.kdj, b=r.boll, ma=r.ma, p=r.price;
+  if(rsi==null || !ma || !m) return null;
+  let s=0; const pros=[], cons=[];
+  if(ma.ma20!=null&&ma.ma50!=null&&ma.ma200!=null){
+    if(ma.ma20>ma.ma50&&ma.ma50>ma.ma200){s++; pros.push("均线多头排列");}
+    else if(ma.ma20<ma.ma50&&ma.ma50<ma.ma200){s--; cons.push("均线空头排列");}
+  }
+  if(ma.ma200!=null&&p!=null){ if(p>ma.ma200){s++; pros.push("价在MA200上");} else {s--; cons.push("价在MA200下");} }
+  if(m.cross==="金叉"){s++; pros.push("MACD金叉");}
+  else if(m.cross==="死叉"){s--; cons.push("MACD死叉");}
+  else if(m.above&&m.hist>0){s++; pros.push("MACD零轴上·红柱");}
+  else if(!m.above&&m.hist<0){s--; cons.push("MACD零轴下·绿柱");}
+  if(rsi>=55){s++; pros.push(`RSI ${rsi.toFixed(0)} 偏强`);}
+  else if(rsi<=45){s--; cons.push(`RSI ${rsi.toFixed(0)} 偏弱`);}
+  if(k){
+    if(k.cross==="金叉"){s++; pros.push("KDJ金叉");}
+    else if(k.cross==="死叉"){s--; cons.push("KDJ死叉");}
+    else if(k.K>60){s++; pros.push("KDJ偏强");}
+    else if(k.K<40){s--; cons.push("KDJ偏弱");}
+  }
+  if(b){
+    if(b.pctB>80){s++; pros.push("BOLL近上轨");}
+    else if(b.pctB<20){s--; cons.push("BOLL近下轨");}
+  }
+  let warn="";
+  if(s>0 && (rsi>75 || (b&&b.pctB>100))) warn="；⚠已超买注意回调";
+  else if(s<0 && (rsi<25 || (b&&b.pctB<0))) warn="；⚠已超卖或有反弹";
+  let txt, cls;
+  if(s>=4){txt="看多 ★"; cls="p-green";}
+  else if(s>=2){txt="看多"; cls="p-green";}
+  else if(s<=-4){txt="看空 ★"; cls="p-red";}
+  else if(s<=-2){txt="看空"; cls="p-red";}
+  else {txt="观望"; cls="mut";}
+  const tip=`技术面评分 ${s>0?"+":""}${s}${warn}｜看多：${pros.join("、")||"无"}｜看空：${cons.join("、")||"无"}`;
+  return {txt, cls, tip};
+}
+
 function renderAlerts(){
   const el=document.getElementById("alerts"); if(!el) return;
   const buys=[], trims=[];
@@ -489,6 +531,10 @@ function cell(r,c,i){
   if(c.k==="signal"){
     const s=signalOf(r);
     return s ? `<td title="${s.tip}"><span class="pill ${s.cls}">${s.txt}</span></td>` : `<td class="mut">—</td>`;
+  }
+  if(c.k==="view"){
+    const w=viewOf(r);
+    return w ? `<td title="${w.tip}"><span class="pill ${w.cls}">${w.txt}</span></td>` : `<td class="mut">—</td>`;
   }
   const v=r[c.k];
   const disp=c.fmt?c.fmt(v):(v??"—");
@@ -579,6 +625,7 @@ function renderFoot(){
       <span class="pill sig-buy">买入</span> <b>RSI&lt;25</b> 深度超卖（<b>RSI&lt;20</b>=强买入★，更稀有更猛）——回溯：RSI&lt;25 触发208次/20日涨79%/下界73%/平均+8.9%/盈亏比3.4，RSI&lt;20 触发37次/涨87%/下界72%/平均+10.7%/盈亏比9.8；
       <span class="pill sig-trim">卖出</span> <b>PE五年分位&gt;95 且 RSI&gt;70</b>（高估值+超买）——<b>仅在非高波动标的生效</b>：回溯发现卖出信号在金融股极准（GS超买后跌76%/JPM70%/MS63%），但在高波动成长股失效（NVDA超买后仅24%下跌、越强越涨），故年化波动率≥40%的标的（NVDA/COIN/NET/SNOW/TSLA/AMD/MU 等）已排除在卖出信号外。
       <b>注</b>：此信号供你自行判断止盈/减仓，<b>不代表做空</b>（做空超买仍是负期望）。<br>
+    • <b>看法</b>（当日技术面综合，与"机会"列互补：机会=稀有高胜率信号，看法=每日粗略倾向）：把 <b>均线排列/价位/MACD/RSI/KDJ/BOLL</b> 6 维度投票汇总为 <span class="pill p-green">看多</span>(≥+2，≥+4加★) / <span class="pill mut">观望</span>(−1~+1) / <span class="pill p-red">看空</span>(≤−2，≤−4加★)，悬停看多空构成。<b>仅供快速扫读，不追求高准确率。</b><br>
     • <b>市盈率TTM</b> = 收盘价 ÷ 摊薄EPS(TTM)；无摊薄EPS时 = 市值 ÷ 归母净利润(如伯克希尔)。校验 AAPL/NVDA/AVGO/BRK.B 与富途一致。<br>
     • <b>近5年分位</b>：<u>实时计算</u> = 复权5年日线 ÷ 拆股还原的滚动TTM摊薄EPS 得历史PE序列，取当前PE百分位。已校验与富途基本一致（多数差≤3）。当数据源历史不足5年或缺摊薄EPS时（如 META 季度序列被截断、BRK.B 无摊薄EPS），<b>直接显示「—」缺失</b>（悬停看原因），<b>绝不用静态值冒充</b>。<br>
     • <b style="color:var(--blue)">ˢ号</b>：Polygon 的实验端点(vX)漏收了个别巨头最新季报(GOOGL/AMZN/META/LLY 迄今仅到 2025-12-31，经 SEC EDGAR 核实这些公司 2026-04-30 已申报)，工具已用 <b>SEC 官方 EPS</b> 修正为当前值，与富途一致。Polygon 补上后(finAsof≥覆盖季度)自动切回实时。<br>
