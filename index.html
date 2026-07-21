@@ -124,7 +124,7 @@
     <span>技术面数值悬停单元格看完整 K/D/J、DIF/DEA、上下轨、均线</span>
     <span><b style="color:var(--blue)">ˢ</b> = 已用 SEC 官方 EPS 修正（Polygon 漏收季报）</span>
     <span><b style="color:var(--amber)">*</b> = 数据源财报滞后（悬停看详情）</span>
-    <span><span class="pill sig-buy">买入</span>/<span class="pill sig-trim">减仓</span> = 回溯验证的大机会（悬停看依据）：买入 RSI&lt;25（&lt;20=强买入★）深度超卖；减仓 PE五年分位&gt;95 且 RSI&gt;70（高估值+超买，风险提示非做空）</span>
+    <span><span class="pill sig-buy">买入</span>/<span class="pill sig-trim">减仓</span> = 回溯验证的大机会（悬停看依据）：买入 RSI&lt;25（&lt;20=强买入★）深度超卖；卖出 PE五年分位&gt;95 且 RSI&gt;70（高估值+超买，仅非高波动股，供参考非做空）</span>
   </div>
 
   <div class="foot" id="foot"></div>
@@ -449,8 +449,10 @@ function classifyPct(v){ if(v==null)return""; return v>=80?"p-red":v<=20?"p-gree
 /* 大机会告警——规则来自 historical_data 回溯(edge_scanner.py，31标的5年)，非拍脑袋：
    强买入 RSI<20 极端超卖：触发37次、20日上涨87%、Wilson下界72%、平均+10.7%、盈亏比9.8；
    买入   RSI<25 深度超卖：触发208次、20日上涨79%、Wilson下界73%、平均+8.9%、盈亏比3.4；
-   减仓   PE五年分位>95 且 RSI>70(高估值+超买双重过热)：31标的回溯 edge+7.5%、20日预期收益压到~0。
-         (纯"高估值/贴顶"扩池后 edge 仅+1.8%已失效；做空仍是负期望，故减仓只作规避止盈，绝不代表做空。) */
+   卖出   PE五年分位>95 且 RSI>70(高估值+超买)：仅在非高波动标的生效。
+         回溯发现卖出信号在金融股极准(GS超买后跌76%/JPM70%/MS63%)、在高波动成长股失效(NVDA超买后仅24%下跌、越强越涨)，
+         故 HI_VOL 名单(年化波动率≥40%)排除在卖出信号外。信号供参考，非强制做空。 */
+const HI_VOL = new Set(["LEU","COIN","NET","SNOW","TSLA","AMD","GEV","MU","NVDA","BABA","CEG","VST","AVGO"]);
 function signalOf(r){
   const rsi=r.rsi, pe=r.pct;
   if(rsi!=null && rsi<20){
@@ -461,9 +463,9 @@ function signalOf(r){
     return {type:"buy", cls:"sig-buy", txt:"买入",
       tip:`RSI ${rsi.toFixed(1)} <25 深度超卖｜回溯(31标的5年)：触发208次、20日上涨79%(保守下界73%)、平均+8.9%、盈亏比3.4`};
   }
-  if(pe!=null && pe>95 && rsi!=null && rsi>70){
-    return {type:"trim", cls:"sig-trim", txt:"减仓",
-      tip:`PE五年分位 ${pe} >95 且 RSI ${rsi.toFixed(1)} >70（高估值+超买双重过热）｜31标的回溯：20日下跌概率51%、edge+7.5%、预期收益已压到~0，宜止盈别追高（数据不支持做空，仅作规避）`};
+  if(pe!=null && pe>95 && rsi!=null && rsi>70 && !HI_VOL.has(r.t)){
+    return {type:"trim", cls:"sig-trim", txt:"卖出",
+      tip:`PE五年分位 ${pe} >95 且 RSI ${rsi.toFixed(1)} >70（高估值+超买）｜仅非高波动股生效｜回溯：金融股极准(GS跌76%/JPM70%)、整体20日下跌51%，供你自行判断（非强制做空）`};
   }
   return null;
 }
@@ -472,7 +474,7 @@ function renderAlerts(){
   const buys=[], trims=[];
   ROWS.forEach(r=>{ const s=signalOf(r); if(s)(s.type==="buy"?buys:trims).push({r,s}); });
   if(!buys.length && !trims.length){
-    el.innerHTML=`<span class="alert-empty">⚡ 当前无触发的大机会（买入 RSI&lt;25 / 强买入 RSI&lt;20 / 减仓 PE分位&gt;95且RSI&gt;70）——空仓等待也是纪律</span>`;
+    el.innerHTML=`<span class="alert-empty">⚡ 当前无触发的大机会（买入 RSI&lt;25 / 强买入 RSI&lt;20 / 卖出 PE分位&gt;95且RSI&gt;70·限非高波动股）——空仓等待也是纪律</span>`;
     return;
   }
   const chip=({r,s})=>`<span class="alert-card alert-${s.type}" title="${s.tip}">${s.type==="buy"?"🟢":"🟠"} ${r.t} ${r.n} · ${s.txt}</span>`;
@@ -575,8 +577,8 @@ function renderFoot(){
       <b>均线</b> MA20/50/200 判多头/空头排列，价距任一关键均线≤1.5%标「测MAxx」(潜在支撑/压力)。<br>
     • <b>⚡大机会告警</b>（规则来自 <code>edge_scanner.py</code> 对 historical_data 回溯【31标的5年】，按 Wilson 置信下界筛选、剔除小样本假信号）：
       <span class="pill sig-buy">买入</span> <b>RSI&lt;25</b> 深度超卖（<b>RSI&lt;20</b>=强买入★，更稀有更猛）——回溯：RSI&lt;25 触发208次/20日涨79%/下界73%/平均+8.9%/盈亏比3.4，RSI&lt;20 触发37次/涨87%/下界72%/平均+10.7%/盈亏比9.8；
-      <span class="pill sig-trim">减仓</span> <b>PE五年分位&gt;95 且 RSI&gt;70</b>（高估值+超买双重过热）——31标的回溯：20日下跌概率51%、edge+7.5%、预期收益压到~0，宜止盈别追高（纯"高估值/贴顶"扩池后 edge 仅+1.8%已失效）。
-      <b>注</b>：回溯证明做空「超买/高估值」是负期望，故减仓信号仅作规避止盈，<b>不代表做空</b>。<br>
+      <span class="pill sig-trim">卖出</span> <b>PE五年分位&gt;95 且 RSI&gt;70</b>（高估值+超买）——<b>仅在非高波动标的生效</b>：回溯发现卖出信号在金融股极准（GS超买后跌76%/JPM70%/MS63%），但在高波动成长股失效（NVDA超买后仅24%下跌、越强越涨），故年化波动率≥40%的标的（NVDA/COIN/NET/SNOW/TSLA/AMD/MU 等）已排除在卖出信号外。
+      <b>注</b>：此信号供你自行判断止盈/减仓，<b>不代表做空</b>（做空超买仍是负期望）。<br>
     • <b>市盈率TTM</b> = 收盘价 ÷ 摊薄EPS(TTM)；无摊薄EPS时 = 市值 ÷ 归母净利润(如伯克希尔)。校验 AAPL/NVDA/AVGO/BRK.B 与富途一致。<br>
     • <b>近5年分位</b>：<u>实时计算</u> = 复权5年日线 ÷ 拆股还原的滚动TTM摊薄EPS 得历史PE序列，取当前PE百分位。已校验与富途基本一致（多数差≤3）。当数据源历史不足5年或缺摊薄EPS时（如 META 季度序列被截断、BRK.B 无摊薄EPS），<b>直接显示「—」缺失</b>（悬停看原因），<b>绝不用静态值冒充</b>。<br>
     • <b style="color:var(--blue)">ˢ号</b>：Polygon 的实验端点(vX)漏收了个别巨头最新季报(GOOGL/AMZN/META/LLY 迄今仅到 2025-12-31，经 SEC EDGAR 核实这些公司 2026-04-30 已申报)，工具已用 <b>SEC 官方 EPS</b> 修正为当前值，与富途一致。Polygon 补上后(finAsof≥覆盖季度)自动切回实时。<br>
