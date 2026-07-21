@@ -10,3 +10,7 @@ model_dataset.csv
 edge_rules.csv
 oof_predictions.csv
 precision_curve.png
+
+# Python 编译缓存
+__pycache__/
+*.pyc
