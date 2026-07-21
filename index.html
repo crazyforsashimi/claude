@@ -226,14 +226,16 @@ function ymdMs(ms){ return new Date(ms).toISOString().slice(0,10); }
 /* bisect_right on sorted string array */
 function upperBound(arr,x){ let lo=0,hi=arr.length; while(lo<hi){const m=(lo+hi)>>1; if(arr[m]<=x)lo=m+1; else hi=m;} return lo; }
 
-/* Wilder RSI(14) */
-function calcRSI(cl, period=14){
-  if(cl.length<period+1) return null;
+/* Wilder RSI(14) 全序列(末值=当前RSI；序列供背离检测取近20日) */
+function calcRSISeries(cl, period=14){
+  const out=new Array(cl.length).fill(null);
+  if(cl.length<period+1) return out;
   let g=0,l=0;
   for(let i=1;i<=period;i++){ const d=cl[i]-cl[i-1]; if(d>=0)g+=d; else l-=d; }
   g/=period; l/=period;
-  for(let i=period+1;i<cl.length;i++){ const d=cl[i]-cl[i-1]; g=(g*(period-1)+(d>0?d:0))/period; l=(l*(period-1)+(d<0?-d:0))/period; }
-  return l===0?100:100-100/(1+g/l);
+  out[period]=l===0?100:100-100/(1+g/l);
+  for(let i=period+1;i<cl.length;i++){ const d=cl[i]-cl[i-1]; g=(g*(period-1)+(d>0?d:0))/period; l=(l*(period-1)+(d<0?-d:0))/period; out[i]=l===0?100:100-100/(1+g/l); }
+  return out;
 }
 
 /* EMA 全序列 */
@@ -342,9 +344,10 @@ async function fetchTicker(u){
   const adj=await api(`/v2/aggs/ticker/${T}/range/1/day/${aFrom}/${ymd(today)}?adjusted=true&sort=asc&limit=600`);
   const ab=adj.results||[];
   if(ab.length){
-    const cl=ab.map(b=>b.c), hi=ab.map(b=>b.h), lo=ab.map(b=>b.l);
+    const cl=ab.map(b=>b.c), hi=ab.map(b=>b.h), lo=ab.map(b=>b.l), vol=ab.map(b=>b.v);
     rec.price=cl[cl.length-1];
-    rec.rsi=calcRSI(cl);
+    const rsiArr=calcRSISeries(cl);
+    rec.rsi=rsiArr[rsiArr.length-1];
     rec.macd=calcMACD(cl);
     rec.kdj=calcKDJ(hi,lo,cl);
     rec.boll=calcBOLL(cl);
@@ -352,6 +355,17 @@ async function fetchTicker(u){
     const hi250=hi.slice(-250);                          // ≈52周(250交易日)
     rec.hi52=hi250.length?Math.max(...hi250):null;
     rec.distHi=(rec.hi52&&rec.price)?rec.price/rec.hi52-1:null;   // ≤0，越近0越贴顶
+    // OBV 资金流向(近20日 z-score)：>1 流入 / <−1 流出
+    const obv=[0]; for(let i=1;i<cl.length;i++)obv.push(obv[i-1]+(cl[i]>cl[i-1]?vol[i]:cl[i]<cl[i-1]?-vol[i]:0));
+    const ow=obv.slice(-20), om=avg(ow), os=Math.sqrt(avg(ow.map(x=>(x-om)**2)));
+    rec.obvZ=os>0?(obv[obv.length-1]-om)/os:0;
+    // 背离(20日窗口)：价格新低但RSI抬高=底背离(看多)；价格新高但RSI走弱=顶背离(看空)
+    const c20=cl.slice(-20), r20=rsiArr.slice(-20).filter(x=>x!=null);
+    if(c20.length>=20 && r20.length>=20 && rec.rsi!=null){
+      const cMin=Math.min(...c20), cMax=Math.max(...c20), rMin=Math.min(...r20), rMax=Math.max(...r20);
+      rec.bullDiv=rec.price<=cMin*1.005 && rec.rsi>rMin+3;
+      rec.bearDiv=rec.price>=cMax*0.995 && rec.rsi<rMax-3;
+    }
     rec.asof=ymdMs(ab[ab.length-1].t);
   }
   // B) ticker details → 权威市值
@@ -437,6 +451,7 @@ function compute(){
       mktcap:d.mktcap??null, peTTM:d.peTTM??null,
       pct:d.pct??null, pctReason:d.pctReason,
       rsi:d.rsi??null, macd:d.macd, kdj:d.kdj, boll:d.boll, ma:d.ma, price:d.price, distHi:d.distHi??null,
+      obvZ:d.obvZ??null, bullDiv:!!d.bullDiv, bearDiv:!!d.bearDiv,
       asof:d.asof, err:d.err, finStale:d.finStale, finAsof:d.finAsof, epsSrc:d.epsSrc, epsThru:d.epsThru,
     };
   });
@@ -476,7 +491,8 @@ function signalOf(r){
   }
   return null;
 }
-/* 当日技术面综合看法——不追求高准确率，只把6个维度(均线排列/长期位置/MACD/RSI/KDJ/BOLL)投票汇总成倾向。
+/* 当日技术面综合看法——不追求高准确率，把8个维度(均线排列/长期位置/MACD/RSI/KDJ/BOLL/OBV资金流向/背离)投票汇总成倾向。
+   注：edge_scanner 实测量价与背离对20日方向 edge 都很弱(±3%内)，故等权补全面性、不加权；看法仍是粗略扫读。
    与"机会"列互补：机会=稀有高胜率极端信号，看法=每日技术面粗略倾向。悬停看多空构成。 */
 function viewOf(r){
   const rsi=r.rsi, m=r.macd, k=r.kdj, b=r.boll, ma=r.ma, p=r.price;
@@ -503,6 +519,9 @@ function viewOf(r){
     if(b.pctB>80){s++; pros.push("BOLL近上轨");}
     else if(b.pctB<20){s--; cons.push("BOLL近下轨");}
   }
+  if(r.obvZ!=null){ if(r.obvZ>1){s++; pros.push("OBV资金流入");} else if(r.obvZ<-1){s--; cons.push("OBV资金流出");} }
+  if(r.bullDiv){s++; pros.push("底背离(价新低RSI抬)");}
+  if(r.bearDiv){s--; cons.push("顶背离(价新高RSI弱)");}
   let warn="";
   if(s>0 && (rsi>75 || (b&&b.pctB>100))) warn="；⚠已超买注意回调";
   else if(s<0 && (rsi<25 || (b&&b.pctB<0))) warn="；⚠已超卖或有反弹";
@@ -623,7 +642,7 @@ function renderFoot(){
     <b>数据说明</b>（Massive/Polygon Starter，按最近收盘实时计算）<br>
     • <b>技术面</b>（RSI/KDJ/MACD/BOLL/均线）由复权日线按标准公式算，悬停单元格看完整数值。高亮 <span class="pill p-red" style="padding:0 5px">红=超买/看空</span> <span class="pill p-green" style="padding:0 5px">绿=超卖/金叉</span> <span style="color:var(--amber)">琥珀=关键位</span>：RSI ≥70/≤30；KDJ K≥80或J≥100 / K≤20或J≤0，标金叉死叉；MACD 金叉死叉·柱值(正绿负红)·零轴多空；BOLL 按%B分五档；均线 MA20/50/200 多空排列，距关键均线≤1.5% 标「测MAxx」。<br>
     • <b>⚡机会</b>（<code>edge_scanner.py</code> 对 31 标的 5 年回溯，按 Wilson 置信下界筛选、剔小样本假信号）：<span class="pill sig-buy">买入</span> <b>RSI&lt;25</b> 深度超卖（<b>RSI&lt;20=强买入★</b>，更稀更猛）——RSI&lt;25 涨79%/下界73%/盈亏比3.4，RSI&lt;20 涨87%/下界72%/盈亏比9.8；<span class="pill sig-trim">卖出</span> <b>PE五年分位&gt;95 且 RSI&gt;70</b>（高估值+超买，<b>仅非高波动股</b>）——金融股极准(GS76%/MS74%/JPM78%)、整体下跌58%/edge+15%，高波动成长股(NVDA仅24%)已排除。卖出仅供判断止盈，<b>不代表做空</b>。<br>
-    • <b>看法</b>（当日技术面粗略倾向，与「机会」列互补）：均线/价位/MACD/RSI/KDJ/BOLL 6 维度投票 → <span class="view-tag view-bull">看多</span>(≥+2，≥+4★) / <span class="view-tag view-neutral">观望</span> / <span class="view-tag view-bear">看空</span>(≤−2，≤−4★)，悬停看多空构成。仅供快速扫读，不追求高准确率。<br>
+    • <b>看法</b>（当日技术面粗略倾向，与「机会」列互补）：均线/价位/MACD/RSI/KDJ/BOLL/OBV资金流向/背离 8 维度投票 → <span class="view-tag view-bull">看多</span>(≥+2，≥+4★) / <span class="view-tag view-neutral">观望</span> / <span class="view-tag view-bear">看空</span>(≤−2，≤−4★)，悬停看多空构成。仅供快速扫读，不追求高准确率（实测量价/背离 edge 均弱，仅补全面性）。<br>
     • <b>估值</b>：市盈率TTM = 收盘价 ÷ 摊薄EPS(TTM)（无摊薄EPS时 = 市值 ÷ 归母净利润，如伯克希尔）；近5年分位 = 复权5年日线 ÷ 拆股还原TTM EPS 的历史PE百分位，与富途基本一致（多数差≤3）。<b>算不出时显示「—」缺失，绝不用静态值冒充</b>——如历史不足5年、无摊薄EPS(BRK.B)、缺季致TTM滞后。<br>
     • <b style="color:var(--blue)">ˢ</b> = Polygon 漏收某巨头最新季报时已用 SEC 官方 EPS 修正（补上自动切回）；<b style="color:var(--amber)">*</b> = 财报滞后警告（当前无）；<b>ETF</b>(QQQ/SPY) 无财报，仅价格指标。<br>
     • 结果缓存于浏览器本地，财报缓存 ${FIN_TTL_DAYS} 天；重开即时显示。`;
