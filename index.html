@@ -481,7 +481,7 @@ function classifyRSI(v){ if(v==null)return""; return v>=70?"p-red":v<=30?"p-gree
 function classifyPct(v){ if(v==null)return""; return v>=80?"p-red":v<=20?"p-green":"p-amber"; }
 
 /* 大机会告警 · Tier2 分组规则——波动率分组 + 动量组内按标的性格再分三档（同一"破下轨"信号在标的间天差地别）：
-   稳健组(非HI_VOL)：均值回归 → RSI(14) 超卖。强买入<20(涨88%/下界70%)、买入<25(涨86%/下界79%/盈亏比10.2)。
+   稳健组(非HI_VOL)：均值回归。强买入 RSI<20(涨88%/下界70%)；买入 RSI<25(涨86%/下界79%) 或 破100日布林下轨(大级别支撑，涨67%/下界64%，与RSI几乎不重叠、纯增量)。
    动量组(HI_VOL) 三档：
      · 趋势回调组(半导体/AI硬件/电力 8只)：破日线布林下轨 且 价在MA200上(涨65%/下界59%)。
      · 大级别支撑组(SNOW/TSLA/BABA)：破 100日布林下轨(≈20周级支撑，涨71-74%/下界57-60%；日线20布林对它们无效)。
@@ -515,6 +515,10 @@ function signalOf(r){
   if(rsi!=null && rsi<25){
     return {type:"buy", cls:"sig-buy", txt:"买入",
       tip:`RSI(14) ${rsi.toFixed(1)} <25 深度超卖｜稳健股回溯：触发133次、20日上涨86%、保守下界79%、平均+7.4%、盈亏比10.2`};
+  }
+  if(r.below100){          // RSI 未极端但破100日布林(大级别支撑，与RSI几乎不重叠的增量机会)
+    return {type:"buy", cls:"sig-buy", txt:"买入",
+      tip:`破 100 日布林下轨（大级别支撑；深度回调但 RSI 未到 25）｜稳健股回溯：20日上涨67%、保守下界64%、edge+10%、与RSI信号几乎不重叠`};
   }
   if(pe!=null && pe>95 && rsi!=null && rsi>70){
     return {type:"trim", cls:"sig-trim", txt:"卖出",
@@ -688,7 +692,7 @@ function renderFoot(){
   document.getElementById("foot").innerHTML=`
     <b>数据说明</b>（Massive/Polygon Starter，按最近收盘实时计算）<br>
     • <b>技术面</b>（RSI/KDJ/MACD/BOLL/均线）由复权日线按标准公式算，悬停单元格看完整数值。高亮 <span class="pill p-red" style="padding:0 5px">红=超买/看空</span> <span class="pill p-green" style="padding:0 5px">绿=超卖/金叉</span> <span style="color:var(--amber)">琥珀=关键位</span>：RSI ≥70/≤30；KDJ K≥80或J≥100 / K≤20或J≤0，标金叉死叉；MACD 金叉死叉·柱值(正绿负红)·零轴多空；BOLL 按%B分五档；均线 MA20/50/200 多空排列，距关键均线≤1.5% 标「测MAxx」；量价=OBV 资金流向(近20日 z-score，>1 流入绿 / <−1 流出红)；背离=价创20日新高/低而 RSI 未跟随(顶背离红=回调预警 / 底背离绿=转强预警)。<br>
-    • <b>⚡机会</b>（<code>edge_scanner.py</code> 分组回溯，Tier2 波动率分组 + 动量组按标的性格三档）：<b>稳健股</b> <span class="pill sig-buy">强买入</span> RSI(14)&lt;20(涨88%/下界70%) · <span class="pill sig-buy">买入</span> RSI(14)&lt;25(涨86%/下界79%/盈亏比10.2) · <span class="pill sig-trim">卖出</span> PE分位&gt;95且RSI(14)&gt;70(金融股极准 GS76%/MS74%/JPM78%，止盈非做空)；<b>动量股三档</b>：趋势回调组(半导体/电力) 破下轨且价ma200上(涨65%/下界59%) · 大级别支撑组(SNOW/TSLA/BABA) 破100日布林下轨(涨71-74%/下界57-60%) · NET/COIN 无可靠信号、暂不提示。KDJ/MACD 实测 edge≈0 未纳入。<br>
+    • <b>⚡机会</b>（<code>edge_scanner.py</code> 分组回溯，Tier2 波动率分组 + 动量组按标的性格三档）：<b>稳健股</b> <span class="pill sig-buy">强买入</span> RSI(14)&lt;20(涨88%/下界70%) · <span class="pill sig-buy">买入</span> RSI(14)&lt;25 或 破100日布林下轨(大支撑，涨86%/67%，两信号几乎不重叠) · <span class="pill sig-trim">卖出</span> PE分位&gt;95且RSI(14)&gt;70(金融股极准 GS76%/MS74%/JPM78%，止盈非做空)；<b>动量股三档</b>：趋势回调组(半导体/电力) 破下轨且价ma200上(涨65%/下界59%) · 大级别支撑组(SNOW/TSLA/BABA) 破100日布林下轨(涨71-74%/下界57-60%) · NET/COIN 无可靠信号、暂不提示。KDJ/MACD 实测 edge≈0 未纳入。<br>
     • <b>看法</b>（当日技术面粗略倾向，与「机会」列互补）：均线/价位/MACD/RSI/KDJ/BOLL/OBV资金流向/背离 8 维度投票 → <span class="view-tag view-bull">看多</span>(≥+2，≥+4★) / <span class="view-tag view-neutral">观望</span> / <span class="view-tag view-bear">看空</span>(≤−2，≤−4★)，悬停看多空构成。仅供快速扫读，不追求高准确率（实测量价/背离 edge 均弱，仅补全面性）。<br>
     • <b>估值</b>：市盈率TTM = 收盘价 ÷ 摊薄EPS(TTM)（无摊薄EPS时 = 市值 ÷ 归母净利润，如伯克希尔）；近5年分位 = 复权5年日线 ÷ 拆股还原TTM EPS 的历史PE百分位，与富途基本一致（多数差≤3）。<b>算不出时显示「—」缺失，绝不用静态值冒充</b>——如历史不足5年、无摊薄EPS(BRK.B)、缺季致TTM滞后。<br>
     • <b style="color:var(--blue)">ˢ</b> = Polygon 漏收某巨头最新季报时已用 SEC 官方 EPS 修正（补上自动切回）；<b style="color:var(--amber)">*</b> = 财报滞后警告（当前无）；<b>ETF</b>(QQQ/SPY) 无财报，仅价格指标。<br>

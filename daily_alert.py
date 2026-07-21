@@ -145,11 +145,13 @@ def main():
                 if m["below100"]:
                     buy.append((tk, name, "破100日布林下轨(大支撑)"))
             # NET/COIN：无可靠信号，不触发
-        else:                            # 稳健组：RSI(14) 超卖
+        else:                            # 稳健组：RSI(14) 超卖 或 破100日布林(大级别支撑)
             if rsi < 20:
                 strong_buy.append((tk, name, f"RSI(14) {rsi:.1f}"))
             elif rsi < 25:
                 buy.append((tk, name, f"RSI(14) {rsi:.1f}"))
+            elif m["below100"]:          # RSI 未触发但破100日布林下轨
+                buy.append((tk, name, "破100日布林下轨(大支撑)"))
             if pe is not None and pe > 95 and rsi > 70:   # 卖出仅稳健组
                 sell.append((tk, name, f"PE分位 {pe:.0f}·RSI(14) {rsi:.1f}"))
 
