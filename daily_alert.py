@@ -25,6 +25,17 @@ HI_VOL = {"LEU", "COIN", "NET", "SNOW", "TSLA", "AMD", "GEV", "MU", "NVDA",
 # 动量组 Tier2 三档：趋势回调(破日线下轨+ma200) / 大级别支撑(破100日布林) / 无信号(NET,COIN)
 MOM_DIP = {"NVDA", "AVGO", "MU", "AMD", "GEV", "CEG", "LEU", "VST"}
 MOM_BIG = {"SNOW", "TSLA", "BABA"}
+
+# 每标的-每信号历史回溯[N,涨率%]（build_ticker_stats.py 生成；数据刷新后重跑更新）
+import json
+TICKER_STATS = json.loads(r'''{"AAPL":{"rsi20":[1,100],"rsi25":[9,78],"b100":[44,55]},"MSFT":{"rsi20":[0,null],"rsi25":[4,100],"b100":[75,47]},"GOOGL":{"rsi20":[0,null],"rsi25":[2,100],"b100":[63,63]},"AMZN":{"rsi20":[2,100],"rsi25":[20,100],"b100":[64,80]},"NVDA":{"dip":[20,90]},"META":{"rsi20":[0,null],"rsi25":[9,100],"b100":[36,94]},"TSLA":{"b100":[47,74]},"MCD":{"rsi20":[5,100],"rsi25":[19,95],"b100":[72,61]},"TSM":{"rsi20":[2,0],"rsi25":[6,33],"b100":[55,51]},"JPM":{"rsi20":[0,null],"rsi25":[4,50],"b100":[38,79]},"CEG":{"dip":[27,67]},"AVGO":{"dip":[24,92]},"BRK-B":{"rsi20":[0,null],"rsi25":[7,57],"b100":[22,73]},"LEU":{"dip":[16,69]},"LLY":{"rsi20":[1,100],"rsi25":[6,100],"b100":[30,90]},"AMD":{"dip":[17,76]},"MU":{"dip":[21,76]},"QCOM":{"rsi20":[0,null],"rsi25":[8,88],"b100":[51,55]},"SNOW":{"b100":[37,73]},"VST":{"dip":[23,61]},"NEE":{"rsi20":[13,92],"rsi25":[22,77],"b100":[52,67]},"GEV":{"dip":[10,100]},"CAT":{"rsi20":[1,100],"rsi25":[4,100],"b100":[34,76]},"BABA":{"b100":[45,71]},"GS":{"rsi20":[0,null],"rsi25":[2,100],"b100":[46,80]},"MS":{"rsi20":[0,null],"rsi25":[0,null],"b100":[40,68]},"SOXX":{"rsi20":[0,null],"rsi25":[2,100],"b100":[54,59]},"QQQ":{"rsi20":[0,null],"rsi25":[5,80],"b100":[55,75]},"SPY":{"rsi20":[0,null],"rsi25":[4,100],"b100":[62,73]}}''')
+
+
+def tstat(tk, key):
+    s = TICKER_STATS.get(tk, {}).get(key)
+    if not s or s[0] == 0:
+        return "本标的0次(极罕见)"
+    return f"本标的{s[0]}次涨{s[1]}%"
 NAMES = {
     "AAPL": "苹果", "MSFT": "微软", "GOOGL": "谷歌", "AMZN": "亚马逊", "NVDA": "英伟达",
     "META": "Meta", "TSLA": "特斯拉", "MCD": "麦当劳", "TSM": "台积电", "JPM": "摩根大通",
@@ -140,18 +151,18 @@ def main():
         if tk in HI_VOL:                 # 动量组 Tier2 三档
             if tk in MOM_DIP:            # 趋势回调：破日线布林下轨 且 价在 MA200 上
                 if m["pctB"] is not None and m["pctB"] < 0 and m["above_ma200"]:
-                    buy.append((tk, name, "破布林下轨·价在MA200上"))
+                    buy.append((tk, name, f"破布林下轨·价在MA200上｜{tstat(tk,'dip')}"))
             elif tk in MOM_BIG:         # 大级别支撑：破 100 日布林下轨
                 if m["below100"]:
-                    buy.append((tk, name, "破100日布林下轨(大支撑)"))
+                    buy.append((tk, name, f"破100日布林下轨(大支撑)｜{tstat(tk,'b100')}"))
             # NET/COIN：无可靠信号，不触发
         else:                            # 稳健组：RSI(14) 超卖 或 破100日布林(大级别支撑)
             if rsi < 20:
-                strong_buy.append((tk, name, f"RSI(14) {rsi:.1f}"))
+                strong_buy.append((tk, name, f"RSI(14) {rsi:.1f}｜{tstat(tk,'rsi20')}"))
             elif rsi < 25:
-                buy.append((tk, name, f"RSI(14) {rsi:.1f}"))
+                buy.append((tk, name, f"RSI(14) {rsi:.1f}｜{tstat(tk,'rsi25')}"))
             elif m["below100"]:          # RSI 未触发但破100日布林下轨
-                buy.append((tk, name, "破100日布林下轨(大支撑)"))
+                buy.append((tk, name, f"破100日布林下轨(大支撑)｜{tstat(tk,'b100')}"))
             if pe is not None and pe > 95 and rsi > 70:   # 卖出仅稳健组
                 sell.append((tk, name, f"PE分位 {pe:.0f}·RSI(14) {rsi:.1f}"))
 

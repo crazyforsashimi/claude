@@ -488,6 +488,10 @@ function classifyPct(v){ if(v==null)return""; return v>=80?"p-red":v<=20?"p-gree
      · 无信号(NET/COIN)：连大级别支撑都失效(涨48-49%)，暂无可靠买入信号。
    卖出(仅稳健组)：PE五年分位>95 且 RSI>70，金融股极准(GS76%/MS74%/JPM78%)，止盈参考、非做空。
    KDJ/MACD 实测独立 edge≈0，不进大机会信号(仅参与「看法」投票)。 */
+/* 每标的-每信号的历史回溯[N,上涨率%]（build_ticker_stats.py 生成；数据刷新后重跑更新）。
+   在分组率之外额外显示个股率——N 小(甚至=1)也保留：它本身说明该信号在这只票上极罕见=极端，可靠性由 N 自证。 */
+const TICKER_STATS = {"AAPL":{"rsi20":[1,100],"rsi25":[9,78],"b100":[44,55]},"MSFT":{"rsi20":[0,null],"rsi25":[4,100],"b100":[75,47]},"GOOGL":{"rsi20":[0,null],"rsi25":[2,100],"b100":[63,63]},"AMZN":{"rsi20":[2,100],"rsi25":[20,100],"b100":[64,80]},"NVDA":{"dip":[20,90]},"META":{"rsi20":[0,null],"rsi25":[9,100],"b100":[36,94]},"TSLA":{"b100":[47,74]},"MCD":{"rsi20":[5,100],"rsi25":[19,95],"b100":[72,61]},"TSM":{"rsi20":[2,0],"rsi25":[6,33],"b100":[55,51]},"JPM":{"rsi20":[0,null],"rsi25":[4,50],"b100":[38,79]},"CEG":{"dip":[27,67]},"AVGO":{"dip":[24,92]},"BRK-B":{"rsi20":[0,null],"rsi25":[7,57],"b100":[22,73]},"LEU":{"dip":[16,69]},"LLY":{"rsi20":[1,100],"rsi25":[6,100],"b100":[30,90]},"AMD":{"dip":[17,76]},"MU":{"dip":[21,76]},"QCOM":{"rsi20":[0,null],"rsi25":[8,88],"b100":[51,55]},"SNOW":{"b100":[37,73]},"VST":{"dip":[23,61]},"NEE":{"rsi20":[13,92],"rsi25":[22,77],"b100":[52,67]},"GEV":{"dip":[10,100]},"CAT":{"rsi20":[1,100],"rsi25":[4,100],"b100":[34,76]},"BABA":{"b100":[45,71]},"GS":{"rsi20":[0,null],"rsi25":[2,100],"b100":[46,80]},"MS":{"rsi20":[0,null],"rsi25":[0,null],"b100":[40,68]},"SOXX":{"rsi20":[0,null],"rsi25":[2,100],"b100":[54,59]},"QQQ":{"rsi20":[0,null],"rsi25":[5,80],"b100":[55,75]},"SPY":{"rsi20":[0,null],"rsi25":[4,100],"b100":[62,73]}};
+function tickerStat(tk,key){const s=TICKER_STATS[tk]&&TICKER_STATS[tk][key];if(!s||s[0]===0)return"本标的历史 0 次(极罕见)";return `本标的历史 ${s[0]} 次·涨${s[1]}%`;}
 const HI_VOL = new Set(["LEU","COIN","NET","SNOW","TSLA","AMD","GEV","MU","NVDA","BABA","CEG","VST","AVGO"]);
 const MOM_DIP = new Set(["NVDA","AVGO","MU","AMD","GEV","CEG","LEU","VST"]);   // 破日线下轨+ma200顺势
 const MOM_BIG = new Set(["SNOW","TSLA","BABA"]);                              // 破100日布林(大级别支撑)
@@ -497,12 +501,12 @@ function signalOf(r){
     if(MOM_DIP.has(r.t)){         // 趋势回调组：破日线布林下轨 且 价在 MA200 上
       if(pctB!=null && pctB<0 && p!=null && ma200!=null && p>ma200){
         return {type:"buy", cls:"sig-buy", txt:"买入",
-          tip:`破布林下轨 且 价在MA200上（上升趋势中的回调买点）｜动量·趋势回调组回溯：20日上涨65%、保守下界59%、盈亏比2.2`};
+          tip:`破布林下轨 且 价在MA200上（上升趋势中的回调买点）｜趋势回调组整体：涨65%、下界59%、盈亏比2.2｜${tickerStat(r.t,'dip')}`};
       }
     } else if(MOM_BIG.has(r.t)){  // 大级别支撑组：破 100 日布林下轨（≈20周级大支撑）
       if(r.below100){
         return {type:"buy", cls:"sig-buy", txt:"买入",
-          tip:`破 100 日布林下轨（≈20周级大支撑；日线20布林对此类无效）｜SNOW/TSLA/BABA 回溯：20日上涨71-74%、保守下界57-60%`};
+          tip:`破 100 日布林下轨（≈20周级大支撑；日线20布林对此类无效）｜大支撑组整体：涨71-74%、下界57-60%｜${tickerStat(r.t,'b100')}`};
       }
     }
     return null;                  // 含 NET/COIN(无可靠信号)与未触发的动量股；动量组不出强买入/卖出
@@ -510,15 +514,15 @@ function signalOf(r){
   // 稳健组：RSI(14) 超卖
   if(rsi!=null && rsi<20){
     return {type:"buy", cls:"sig-buy", txt:"强买入 ★",
-      tip:`RSI(14) ${rsi.toFixed(1)} <20 极端超卖｜稳健股回溯：触发25次、20日上涨88%、保守下界70%、平均+8.2%、盈亏比3.3`};
+      tip:`RSI(14) ${rsi.toFixed(1)} <20 极端超卖｜稳健组整体：触发25次、涨88%、下界70%、盈亏比3.3｜${tickerStat(r.t,'rsi20')}`};
   }
   if(rsi!=null && rsi<25){
     return {type:"buy", cls:"sig-buy", txt:"买入",
-      tip:`RSI(14) ${rsi.toFixed(1)} <25 深度超卖｜稳健股回溯：触发133次、20日上涨86%、保守下界79%、平均+7.4%、盈亏比10.2`};
+      tip:`RSI(14) ${rsi.toFixed(1)} <25 深度超卖｜稳健组整体：触发133次、涨86%、下界79%、盈亏比10.2｜${tickerStat(r.t,'rsi25')}`};
   }
   if(r.below100){          // RSI 未极端但破100日布林(大级别支撑，与RSI几乎不重叠的增量机会)
     return {type:"buy", cls:"sig-buy", txt:"买入",
-      tip:`破 100 日布林下轨（大级别支撑；深度回调但 RSI 未到 25）｜稳健股回溯：20日上涨67%、保守下界64%、edge+10%、与RSI信号几乎不重叠`};
+      tip:`破 100 日布林下轨（大级别支撑；深度回调但 RSI 未到 25）｜稳健组整体：涨67%、下界64%、与RSI几乎不重叠｜${tickerStat(r.t,'b100')}`};
   }
   if(pe!=null && pe>95 && rsi!=null && rsi>70){
     return {type:"trim", cls:"sig-trim", txt:"卖出",
