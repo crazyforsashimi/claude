@@ -214,7 +214,31 @@ stock-screener/
 - 已做「TTM完整性校验」+「财报陈旧度过滤」：若某季度财报缺失(如 META 曾缺 2022Q4、JPM 缺 2024Q4)导致 trailing-4 拼出的TTM跨度不是完整年度，直接判该行估值缺失；且当 `merge_asof` 因缺季回退到过旧财报(公布日距交易日 >200 天)造成 TTM 滞后时，同样置缺失，不用滞后值冒充。**此前 JPM 曾因缺 2024Q4 使 2025 全年 EPS 卡在旧值、PE 分位失真为 91%(真实 99%)，现已修复。**
 - 无 forward PE / 分析师预期、无逐笔/盘口数据、无 Fama-French 式全市场横截面因子 — Massive Starter 档不提供，未来若升级套餐或换数据源可再补充。
 
+## 每日大机会告警（`daily_alert.py` + GitHub Actions）
+
+云端定时、免费、不用电脑开着：每个美股交易日收盘后自动拉 31 标的数据、检测大机会信号，**有触发就推微信/邮件，无触发不打扰**。信号口径与工具、回测完全一致（复用 `build_dataset`）。
+
+### 一次性配置（约 5 分钟）
+
+1. **拿微信 Server酱 SendKey**：手机微信扫码登录 [sct.ftqq.com](https://sct.ftqq.com) → 复制 SendKey。
+2. **在 GitHub 仓库配 Secrets**：仓库 → Settings → Secrets and variables → Actions → New repository secret，加两条：
+   - `MASSIVE_API_KEY` = 你的 Polygon/Massive key（和 `config.js` 里同一个）
+   - `SERVERCHAN_SENDKEY` = 上一步的 SendKey
+3. **测试**：仓库 → Actions → 「每日大机会告警」→ Run workflow 手动跑一次，看是否收到推送（无信号则日志显示「今日无大机会信号」）。
+
+之后每交易日 **UTC 22:00（美东收盘后）** 自动运行。改时间就编辑 `.github/workflows/daily-alert.yml` 的 `cron`。
+
+### 邮件推送（可选，替代或叠加微信）
+再加 Secrets：`SMTP_HOST` / `SMTP_PORT`(默认465) / `SMTP_USER` / `SMTP_PASS` / `SMTP_TO`。
+（Gmail 用应用专用密码；QQ/163 邮箱需开 SMTP 授权码。）
+
+### 推送的信号
+🟢 强买入 `RSI<20` / 买入 `RSI<25`；🟠 卖出 `PE五年分位>95 且 RSI>70`（仅非高波动股）。至少配一个通知渠道，未配则只在日志打印。
+
+---
+
 ## 变更记录
+- **v18（2026-07-21）**：新增每日大机会告警 `daily_alert.py` + GitHub Actions 定时(`.github/workflows/daily-alert.yml`)。每交易日收盘后云端自动检测 31 标的信号(复用 `build_dataset`、口径一致)，有触发推微信 Server酱/邮件、无触发不打扰。配置见上节。
 - **v17（2026-07-21）**：把「量价」(OBV 资金流向)和「背离」做成独立列(接在均线列后)——数据 `fetchTicker` 已算，之前只参与看法投票，现在单独可见、可悬停看归因。
 - **v16（2026-07-21）**：「看法」列 6 维 → 8 维，新增 OBV 资金流向(±1)和背离(底背离+1/顶背离−1)。**先在 `edge_scanner` 实测**：量价配合(放量涨跌/OBV)与背离对 20 日方向 edge 均弱(±3%内，唯一亮点"放量超卖 +13%"其实是 RSI 超卖在起作用、放量无额外贡献；顶背离甚至反向)。故两维等权补全面性、不加权；看法仍是粗略扫读、不追求准确率。
 - **v15（2026-07-21）**：修复 TTM EPS 滞后 bug + 删「行业均值PE」列。**Bug**：Polygon 缺季(JPM 缺 2024Q4，银行 Q4 常并入年报)使 `merge_asof` 回退到过旧财报、TTM 滞后达 14 个月，令 model_dataset 的 PE 分位失真(JPM 显示 91%，实时工具/独立复现均 ~99%)。**修复**：`build_dataset.py` 加财报陈旧度过滤(交易日距所用财报公布日 >200 天 → 该行估值全部置缺失，不冒充)。修复后 JPM 分位 91%→99%(三方一致)；卖出规则重验反而更强(非高波动股 PE>95&RSI>70 下跌 58%/edge+15%，GS76%/MS74%/JPM78%)。买入信号(RSI)不受影响。
