@@ -63,9 +63,9 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
 
 # 每组的标题/说明/主色(买入绿、卖出橙)
 GROUP_META = {
-    "strong": ("🟢 强买入", "RSI&lt;20 极端超卖 · 回溯20日涨87% · 盈亏比9.8", "#12924f"),
-    "buy":    ("🟢 买入",   "RSI&lt;25 深度超卖 · 回溯20日涨79% · 盈亏比3.4", "#12924f"),
-    "sell":   ("🟠 卖出/减仓参考", "PE五年分位&gt;95 且 RSI&gt;70 · 仅非高波动股 · 非做空", "#b7791f"),
+    "strong": ("🟢 强买入", "RSI(14)&lt;20 极端超卖 · 回溯20日涨87% · 盈亏比9.8", "#12924f"),
+    "buy":    ("🟢 买入",   "RSI(14)&lt;25 深度超卖 · 回溯20日涨79% · 盈亏比3.4", "#12924f"),
+    "sell":   ("🟠 卖出/减仓参考", "PE五年分位&gt;95 且 RSI(14)&gt;70 · 仅非高波动股 · 非做空", "#b7791f"),
 }
 
 
@@ -96,7 +96,8 @@ def build_messages(asof, groups):
             f'<div style="color:#8a9099;font-size:13px;margin:3px 0 24px">数据截至 {asof}</div>{sections}'
             '<div style="color:#aab0b8;font-size:11px;border-top:1px solid #eef0f2;padding-top:14px;'
             'line-height:1.7">规则来自 edge_scanner 对 31 标的近 5 年回溯：买入=历史高胜率抄底信号；'
-            '卖出仅供止盈参考、<b>非做空</b>。<br>本邮件由 GitHub Actions 自动发送，请勿回复。</div></div>')
+            '卖出仅供止盈参考、<b>非做空</b>。RSI 为日线 14 周期（Wilder 平滑）。'
+            '<br>本邮件由 GitHub Actions 自动发送，请勿回复。</div></div>')
     return md_txt, html
 
 

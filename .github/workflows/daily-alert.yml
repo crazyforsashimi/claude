@@ -2,8 +2,10 @@ name: 每日大机会告警
 
 on:
   schedule:
-    # UTC 22:00 周一~周五 = 美东 18:00(夏令时)/17:00(冬令时)，美股收盘后、EOD 数据已就绪
-    - cron: "0 22 * * 1-5"
+    # 每交易日盘中扫 3 次(UTC；夏令时 EDT=UTC−4)：早盘~10:00 / 中盘~13:00 / 尾盘~15:45 美东
+    - cron: "0 14 * * 1-5"
+    - cron: "0 17 * * 1-5"
+    - cron: "45 19 * * 1-5"
   workflow_dispatch:   # 允许在 Actions 页手动点「Run workflow」
     inputs:
       test:
