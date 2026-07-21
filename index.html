@@ -111,8 +111,6 @@
 
   <div class="legend">
     <span><b>RSI</b>：<span style="color:var(--red)">≥70 超买</span> · <span style="color:var(--green)">≤30 超卖</span></span>
-    <span><b>情绪评分</b>：0.4×RSI + 0.3×52周位置 + 0.3×趋势(均线)</span>
-    <span><span class="seed" style="border-bottom:1px dashed">虚线</span> = 快照种入值（非实时）</span>
     <span><b style="color:var(--blue)">ˢ</b> = 已用 SEC 官方 EPS 修正（Polygon 漏收季报）</span>
     <span><b style="color:var(--amber)">*</b> = 数据源财报滞后（悬停看详情）</span>
   </div>
@@ -132,26 +130,25 @@ const FIN_TTL_DAYS = 20;           // 财报缓存天数（季度才变）
 const CACHE_KEY = "screener_cache_v3";   // v3: 5年分位加入拆股还原
 
 /* 关注标的：代码 / 中文名 / 板块分组(行业均值) / ETF标记 /
-   fwd = 动态PE(快照种入,Massive无预期数据,虚线标注) /
    secEps+secEpsThru = SEC官方TTM摊薄EPS覆盖(仅用于 Polygon 漏收季报的巨头) */
 const UNIVERSE = [
-  {t:"AAPL",  n:"苹果",       g:"科技硬件", fwd:37.09},
-  {t:"MSFT",  n:"微软",       g:"科技软件", fwd:21.06},
-  {t:"GOOGL", n:"谷歌-A",     g:"互联网",   fwd:26.91, secEps:13.11, secEpsThru:"2026-03-31"},
-  {t:"AMZN",  n:"亚马逊",     g:"互联网",   fwd:29.17, secEps:8.36,  secEpsThru:"2026-03-31"},
-  {t:"NVDA",  n:"英伟达",     g:"半导体",   fwd:20.09},
-  {t:"META",  n:"Meta",       g:"互联网",   fwd:20.46, secEps:27.50, secEpsThru:"2026-03-31"},
-  {t:"TSLA",  n:"特斯拉",     g:"汽车",     fwd:289.13},
-  {t:"MCD",   n:"麦当劳",     g:"餐饮消费", fwd:null},
-  {t:"TSM",   n:"台积电",     g:"半导体",   fwd:null},
-  {t:"JPM",   n:"摩根大通",   g:"银行",     fwd:14.73},
-  {t:"CEG",   n:"星座能源",   g:"公用电力", fwd:null},
-  {t:"AVGO",  n:"博通",       g:"半导体",   fwd:28.21},
-  {t:"BRK.B", n:"伯克希尔-B", g:"综合金融", fwd:23.91},
-  {t:"LEU",   n:"Centrus能源",g:"核燃料",   fwd:null},
-  {t:"LLY",   n:"礼来",       g:"制药",     fwd:34.58, secEps:28.15, secEpsThru:"2026-03-31"},
-  {t:"QQQ",   n:"纳指100ETF", g:"ETF",      fwd:null, etf:true},
-  {t:"SPY",   n:"标普500ETF", g:"ETF",      fwd:null, etf:true},
+  {t:"AAPL",  n:"苹果",       g:"科技硬件"},
+  {t:"MSFT",  n:"微软",       g:"科技软件"},
+  {t:"GOOGL", n:"谷歌-A",     g:"互联网",   secEps:13.11, secEpsThru:"2026-03-31"},
+  {t:"AMZN",  n:"亚马逊",     g:"互联网",   secEps:8.36,  secEpsThru:"2026-03-31"},
+  {t:"NVDA",  n:"英伟达",     g:"半导体"},
+  {t:"META",  n:"Meta",       g:"互联网",   secEps:27.50, secEpsThru:"2026-03-31"},
+  {t:"TSLA",  n:"特斯拉",     g:"汽车"},
+  {t:"MCD",   n:"麦当劳",     g:"餐饮消费"},
+  {t:"TSM",   n:"台积电",     g:"半导体"},
+  {t:"JPM",   n:"摩根大通",   g:"银行"},
+  {t:"CEG",   n:"星座能源",   g:"公用电力"},
+  {t:"AVGO",  n:"博通",       g:"半导体"},
+  {t:"BRK.B", n:"伯克希尔-B", g:"综合金融"},
+  {t:"LEU",   n:"Centrus能源",g:"核燃料"},
+  {t:"LLY",   n:"礼来",       g:"制药",     secEps:28.15, secEpsThru:"2026-03-31"},
+  {t:"QQQ",   n:"纳指100ETF", g:"ETF",      etf:true},
+  {t:"SPY",   n:"标普500ETF", g:"ETF",      etf:true},
 ];
 
 const COLS = [
@@ -161,11 +158,9 @@ const COLS = [
   {k:"g",    label:"板块"},
   {k:"mktcap",label:"市值",     fmt:fmtCap},
   {k:"peTTM",label:"市盈率TTM", fmt:v=>fmtNum(v,2)},
-  {k:"fwd",  label:"动态市盈率",fmt:v=>fmtNum(v,2), seed:true},
   {k:"indPE",label:"行业均值PE",fmt:v=>fmtNum(v,2)},
   {k:"pct",  label:"近5年分位", fmt:fmtPct},
   {k:"rsi",  label:"RSI(14)",   fmt:v=>fmtNum(v,1)},
-  {k:"senti",label:"情绪评分",  fmt:v=>fmtNum(v,0)},
 ];
 
 /* ============================================================
@@ -201,13 +196,6 @@ function calcRSI(cl, period=14){
   g/=period; l/=period;
   for(let i=period+1;i<cl.length;i++){ const d=cl[i]-cl[i-1]; g=(g*(period-1)+(d>0?d:0))/period; l=(l*(period-1)+(d<0?-d:0))/period; }
   return l===0?100:100-100/(1+g/l);
-}
-/* 情绪评分 0-100 */
-function sentiment(rsi,price,hi52,lo52,ma50,ma200){
-  if(rsi==null||price==null) return null;
-  const pos=(hi52>lo52)?(price-lo52)/(hi52-lo52)*100:50;
-  let trend=0; if(ma50&&price>ma50)trend+=50; if(ma200&&price>ma200)trend+=50;
-  return Math.max(0,Math.min(100,0.4*rsi+0.3*pos+0.3*trend));
 }
 
 /* ============================================================
@@ -267,17 +255,13 @@ function pctile5(bars, quarters, splits, curPE){
 
 async function fetchTicker(u){
   const T=u.t, rec={t:T}, today=new Date();
-  // A) 技术面：复权日线 ~1.5年 → 价格/RSI/52周/均线
+  // A) 技术面：复权日线 ~1.5年 → 价格/RSI
   const aFrom=ymd(new Date(Date.now()-520*864e5));
   const adj=await api(`/v2/aggs/ticker/${T}/range/1/day/${aFrom}/${ymd(today)}?adjusted=true&sort=asc&limit=600`);
   const ab=adj.results||[];
   if(ab.length){
     const cl=ab.map(b=>b.c);
     rec.price=cl[cl.length-1];
-    const win=cl.slice(-252);
-    rec.hi52=Math.max(...win); rec.lo52=Math.min(...win);
-    rec.ma50 = cl.length>=50 ? avg(cl.slice(-50)) : null;
-    rec.ma200= cl.length>=200? avg(cl.slice(-200)): null;
     rec.rsi=calcRSI(cl);
     rec.asof=ymdMs(ab[ab.length-1].t);
   }
@@ -361,11 +345,10 @@ function compute(){
     const d=CACHE.data[u.t]||{};
     return {
       t:u.t, n:u.n, g:u.g, etf:!!u.etf,
-      mktcap:d.mktcap??null, peTTM:d.peTTM??null, fwd:u.fwd,
+      mktcap:d.mktcap??null, peTTM:d.peTTM??null,
       pct:d.pct??null, pctReason:d.pctReason,
-      rsi:d.rsi??null, price:d.price, hi52:d.hi52, lo52:d.lo52, ma50:d.ma50, ma200:d.ma200,
+      rsi:d.rsi??null, price:d.price,
       asof:d.asof, err:d.err, finStale:d.finStale, finAsof:d.finAsof, epsSrc:d.epsSrc, epsThru:d.epsThru,
-      senti:sentiment(d.rsi,d.price,d.hi52,d.lo52,d.ma50,d.ma200),
     };
   });
   const byG={};
@@ -380,7 +363,6 @@ function setStatus(cls,txt){ document.getElementById("status").innerHTML=`<span 
 function classifyPE(pe,ind){ if(pe==null||ind==null)return""; return pe>ind*1.15?"p-red":pe<ind*0.85?"p-green":""; }
 function classifyRSI(v){ if(v==null)return""; return v>=70?"p-red":v<=30?"p-green":""; }
 function classifyPct(v){ if(v==null)return""; return v>=80?"p-red":v<=20?"p-green":"p-amber"; }
-function classifySenti(v){ if(v==null)return""; return v>=70?"p-green":v<45?"p-red":"p-amber"; }
 
 function cell(r,c,i){
   if(c.k==="idx") return `<td class="mut num">${i+1}</td>`;
@@ -402,13 +384,7 @@ function cell(r,c,i){
     if(v==null) return `<td class="num mut" title="${r.pctReason||'未刷新'}">—</td>`;
     return `<td class="num"><span class="pill ${classifyPct(v)}">${disp}</span>${mark}</td>`;
   }
-  if(c.k==="senti"){
-    if(v==null) return `<td class="num mut">—</td>`;
-    const cl=classifySenti(v), col=cl==="p-green"?"var(--green)":cl==="p-red"?"var(--red)":"var(--amber)";
-    return `<td class="num"><span class="bars"><span class="track"><i style="width:${v}%;background:${col}"></i></span><b style="color:${col}">${disp}</b></span></td>`;
-  }
-  const seed=c.seed?" seed":"";
-  return `<td class="num${seed}">${disp}</td>`;
+  return `<td class="num">${disp}</td>`;
 }
 
 function render(){
@@ -434,10 +410,9 @@ function render(){
 function renderFoot(){
   document.getElementById("foot").innerHTML=`
     <b>数据说明</b>（Massive/Polygon Starter，无限速，按最近收盘）<br>
-    • <b>市值</b>：ticker details 权威值。<b>RSI/52周/均线/情绪评分</b>：复权日线计算。<br>
+    • <b>市值</b>：ticker details 权威值。<b>RSI(14)</b>：复权日线按 Wilder 法计算。<br>
     • <b>市盈率TTM</b> = 收盘价 ÷ 摊薄EPS(TTM)；无摊薄EPS时 = 市值 ÷ 归母净利润(如伯克希尔)。校验 AAPL/NVDA/AVGO/BRK.B 与富途一致。<br>
     • <b>近5年分位</b>：<u>实时计算</u> = 复权5年日线 ÷ 拆股还原的滚动TTM摊薄EPS 得历史PE序列，取当前PE百分位。已校验与富途基本一致（多数差≤3）。当数据源历史不足5年或缺摊薄EPS时（如 META 季度序列被截断、BRK.B 无摊薄EPS），<b>直接显示「—」缺失</b>（悬停看原因），<b>绝不用静态值冒充</b>。<br>
-    • <b class="seed" style="border-bottom:1px dashed">动态市盈率</b>：Massive 无分析师预期数据，仍用 2026-07-17 富途快照种入（变化慢）。<br>
     • <b style="color:var(--blue)">ˢ号</b>：Polygon 的实验端点(vX)漏收了个别巨头最新季报(GOOGL/AMZN/META/LLY 迄今仅到 2025-12-31，经 SEC EDGAR 核实这些公司 2026-04-30 已申报)，工具已用 <b>SEC 官方 EPS</b> 修正为当前值，与富途一致。Polygon 补上后(finAsof≥覆盖季度)自动切回实时。<br>
     • <b style="color:var(--amber)">*号</b>：数据源财报滞后但暂无 SEC 覆盖值时的警告（当前无）。<br>
     • <b>行业均值PE</b> = 自选股中同板块(≥2支)的 PE TTM 均值。<b>ETF(QQQ/SPY)</b> 无财报，仅价格类指标。<br>
