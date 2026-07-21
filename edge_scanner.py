@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).parent
-DATA = ROOT / "model_dataset.csv"
+DATA = ROOT / "output" / "model_dataset.csv"
 MIN_N = 20          # 样本量门槛：低于此不可信，直接剔除
 Z = 1.96            # 95% 置信
 
@@ -120,7 +120,7 @@ def main():
               + ", ".join(f"{r.rule}(N={int(r.N)})" for _, r in skipped.iterrows()))
 
     print("\n★ = Wilson下界≥70% 且 edge≥+12%：样本量够、胜率稳、超额显著的可交易强规则")
-    ranked.to_csv(ROOT / "edge_rules.csv", index=False)
+    ranked.to_csv(DATA.parent / "edge_rules.csv", index=False)
     print("已存 edge_rules.csv")
 
 

@@ -105,19 +105,23 @@ key 存在 **`config.js`** 里（被 `.gitignore` 忽略，不入仓库），由
 ## 文件结构
 ```
 stock-screener/
-├── index.html          # 工具本体（HTML/CSS/JS 全部逻辑）
-├── config.example.js   # key 模板（复制为 config.js 填入你的 key）
-├── config.js           # 你的真实 key（.gitignore 忽略，不入仓库）
-├── download_history.py    # 轻量版：仅下载17支标的5年复权OHLCV
-├── build_dataset.py       # 完整版：OHLCV + 技术指标 + 估值基本面 + 前瞻收益标签，供算法建模
-├── build_labels.py        # 建模就绪层：三重障碍标签(3/2/20) + 派生特征 + 特征白/黑名单 → model_dataset.csv
-├── train_model.py         # 买入检测器：HGB + Purged Walk-Forward（结论：综合特征预测20日方向样本外无 alpha）
-├── edge_scanner.py        # 大机会条件扫描：超卖/回撤/支撑规则 + Wilson 置信下界排序 → edge_rules.csv
-├── check_data_quality.py  # 数据质量体检：结构/OHLC一致性/极端跳变/指标越界/估值合理性/前视偏差/交易日历对齐
-├── historical_data/       # build_dataset.py 的输出 CSV（.gitignore 忽略，不入仓库）
-├── model_dataset.csv      # build_labels.py 的输出：pooled 建模数据集（.gitignore 忽略，不入仓库）
-├── .gitignore
-└── README.md
+├── index.html             # 选股工具本体（HTML/CSS/JS，部署 GitHub Pages）
+├── config.example.js      # key 模板（复制为 config.js 填入你的 key）
+├── config.js              # 你的真实 key（.gitignore 忽略，不入仓库）
+├── README.md · .gitignore
+│   ── 数据管线 ──
+├── build_dataset.py       # ①OHLCV + 技术指标 + 估值基本面 + 前瞻收益 → historical_data/
+├── build_labels.py        # ②三重障碍标签(3/2/20) + 派生特征 → output/model_dataset.csv
+├── download_history.py    # 轻量版：仅下载 5 年复权 OHLCV
+├── check_data_quality.py  # 数据质量体检（7 类自动检查）
+│   ── 建模 / 告警 ──
+├── edge_scanner.py        # 大机会条件扫描：分组回溯 + Wilson 下界 → output/edge_rules.csv
+├── train_model.py         # 买入检测器：HGB + Purged Walk-Forward（结论：综合特征无 alpha）
+├── daily_alert.py         # 每日告警：检测信号 → 微信/邮件
+├── .github/workflows/     # daily-alert.yml：每交易日盘中 3 次定时触发
+│   ── 生成数据(忽略) ──
+├── historical_data/       # 原始日线数据
+└── output/                # 建模产物：model_dataset / edge_rules / oof_predictions / precision_curve
 ```
 
 ---

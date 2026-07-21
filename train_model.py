@@ -26,7 +26,7 @@ from sklearn.inspection import permutation_importance
 from sklearn.metrics import average_precision_score, roc_auc_score
 
 ROOT = Path(__file__).parent
-DATA = ROOT / "model_dataset.csv"
+DATA = ROOT / "output" / "model_dataset.csv"
 HORIZON = 20   # 与 build_labels.py 一致：purge 掉训练尾部 20 交易日，防标签重叠泄漏
 
 CORE_FEATURES = [
@@ -169,9 +169,9 @@ def main():
     ax.set_ylabel("out-of-sample precision %")
     ax.set_title("Buy detector: precision vs signal frequency (threshold gating)")
     ax.legend(); ax.grid(alpha=.3); fig.tight_layout()
-    fig.savefig(ROOT / "precision_curve.png", dpi=130)
+    fig.savefig(DATA.parent / "precision_curve.png", dpi=130)
     df.loc[m, ["ticker", "date", "tb_long", "tb_long_ret"]].assign(proba=pv) \
-        .to_csv(ROOT / "oof_predictions.csv", index=False)
+        .to_csv(DATA.parent / "oof_predictions.csv", index=False)
     print(f"\n已存 precision_curve.png（精度-频率曲线）、oof_predictions.csv（样本外预测）")
 
 

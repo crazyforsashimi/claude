@@ -35,7 +35,7 @@ import pandas as pd
 
 ROOT = Path(__file__).parent
 DATA_DIR = ROOT / "historical_data"
-OUT_PATH = ROOT / "model_dataset.csv"
+OUT_PATH = ROOT / "output" / "model_dataset.csv"
 
 HORIZON = 20        # 时间障碍：交易日
 UP_MULT_LONG, DOWN_MULT_LONG = 3.0, 2.0     # 买入：止盈 +3ATR / 止损 −2ATR
@@ -208,6 +208,7 @@ def main():
                         ts.mean() if len(ts) else np.nan))
 
     full = pd.concat(frames, ignore_index=True)
+    OUT_PATH.parent.mkdir(exist_ok=True)
     full.to_csv(OUT_PATH, index=False)
 
     print(f"\n输出: {OUT_PATH.name}  共 {len(full)} 行 × {full.shape[1]} 列")
