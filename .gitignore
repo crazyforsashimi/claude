@@ -3,3 +3,10 @@ config.js
 
 # 系统/编辑器
 .DS_Store
+
+# 下载/生成的数据集与模型产物：体积大且可随时重新生成，不入仓库
+historical_data/
+model_dataset.csv
+edge_rules.csv
+oof_predictions.csv
+precision_curve.png

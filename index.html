@@ -58,6 +58,14 @@
   .p-green{color:var(--green);background:var(--green-bg)}
   .p-red{color:var(--red);background:var(--red-bg)}
   .p-amber{color:var(--amber);background:var(--amber-bg)}
+  .pill.sig-buy{color:#fff;background:var(--green)}
+  .pill.sig-trim{color:#fff;background:var(--amber)}
+  .alerts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;min-height:20px}
+  .alert-card{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;cursor:default}
+  .alert-buy{background:var(--green-bg);color:var(--green);border:1px solid var(--green)}
+  .alert-trim{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber)}
+  .alert-lead{font-weight:700}
+  .alert-empty{color:var(--muted);font-size:13px}
   .mut{color:var(--muted)}
   .seed{border-bottom:1px dashed var(--muted)}
   .bars{display:inline-flex;align-items:center;gap:7px;justify-content:flex-end}
@@ -102,6 +110,8 @@
 
   <div class="tabs" id="tabs"></div>
 
+  <div class="alerts" id="alerts"></div>
+
   <div class="tablewrap">
     <table>
       <thead><tr id="head"></tr></thead>
@@ -114,6 +124,7 @@
     <span>技术面数值悬停单元格看完整 K/D/J、DIF/DEA、上下轨、均线</span>
     <span><b style="color:var(--blue)">ˢ</b> = 已用 SEC 官方 EPS 修正（Polygon 漏收季报）</span>
     <span><b style="color:var(--amber)">*</b> = 数据源财报滞后（悬停看详情）</span>
+    <span><span class="pill sig-buy">买入</span>/<span class="pill sig-trim">减仓</span> = 回溯验证的大机会（悬停看依据）：买入 RSI&lt;25（&lt;20=强买入★）深度超卖；减仓 PE五年分位&gt;95 且 RSI&gt;70（高估值+超买，风险提示非做空）</span>
   </div>
 
   <div class="foot" id="foot"></div>
@@ -148,8 +159,22 @@ const UNIVERSE = [
   {t:"BRK.B", n:"伯克希尔-B", g:"综合金融"},
   {t:"LEU",   n:"Centrus能源",g:"核燃料"},
   {t:"LLY",   n:"礼来",       g:"制药",     secEps:28.15, secEpsThru:"2026-03-31"},
+  {t:"AMD",   n:"超微半导体", g:"半导体"},
+  {t:"MU",    n:"美光科技",   g:"半导体"},
+  {t:"QCOM",  n:"高通",       g:"半导体"},
+  {t:"NET",   n:"Cloudflare", g:"科技软件"},
+  {t:"SNOW",  n:"Snowflake",  g:"科技软件"},
+  {t:"VST",   n:"Vistra能源", g:"公用电力"},
+  {t:"NEE",   n:"新纪元能源", g:"公用电力"},
+  {t:"GEV",   n:"GE Vernova", g:"公用电力"},
+  {t:"CAT",   n:"卡特彼勒",   g:"工业机械"},
+  {t:"COIN",  n:"Coinbase",   g:"加密金融"},
+  {t:"BABA",  n:"阿里巴巴",   g:"互联网"},
+  {t:"GS",    n:"高盛",       g:"银行"},
+  {t:"MS",    n:"摩根士丹利", g:"银行"},
   {t:"QQQ",   n:"纳指100ETF", g:"ETF",      etf:true},
   {t:"SPY",   n:"标普500ETF", g:"ETF",      etf:true},
+  {t:"SOXX",  n:"半导体ETF",  g:"ETF",      etf:true},
 ];
 
 const COLS = [
@@ -157,6 +182,7 @@ const COLS = [
   {k:"t",    label:"代码"},
   {k:"n",    label:"名称"},
   {k:"g",    label:"板块"},
+  {k:"signal",label:"机会",     sortable:false},
   {k:"mktcap",label:"市值",     fmt:fmtCap},
   {k:"peTTM",label:"市盈率TTM", fmt:v=>fmtNum(v,2)},
   {k:"indPE",label:"行业均值PE",fmt:v=>fmtNum(v,2)},
@@ -316,6 +342,9 @@ async function fetchTicker(u){
     rec.kdj=calcKDJ(hi,lo,cl);
     rec.boll=calcBOLL(cl);
     rec.ma=calcMA(cl);
+    const hi250=hi.slice(-250);                          // ≈52周(250交易日)
+    rec.hi52=hi250.length?Math.max(...hi250):null;
+    rec.distHi=(rec.hi52&&rec.price)?rec.price/rec.hi52-1:null;   // ≤0，越近0越贴顶
     rec.asof=ymdMs(ab[ab.length-1].t);
   }
   // B) ticker details → 权威市值
@@ -400,7 +429,7 @@ function compute(){
       t:u.t, n:u.n, g:u.g, etf:!!u.etf,
       mktcap:d.mktcap??null, peTTM:d.peTTM??null,
       pct:d.pct??null, pctReason:d.pctReason,
-      rsi:d.rsi??null, macd:d.macd, kdj:d.kdj, boll:d.boll, ma:d.ma, price:d.price,
+      rsi:d.rsi??null, macd:d.macd, kdj:d.kdj, boll:d.boll, ma:d.ma, price:d.price, distHi:d.distHi??null,
       asof:d.asof, err:d.err, finStale:d.finStale, finAsof:d.finAsof, epsSrc:d.epsSrc, epsThru:d.epsThru,
     };
   });
@@ -417,11 +446,48 @@ function classifyPE(pe,ind){ if(pe==null||ind==null)return""; return pe>ind*1.15
 function classifyRSI(v){ if(v==null)return""; return v>=70?"p-red":v<=30?"p-green":""; }
 function classifyPct(v){ if(v==null)return""; return v>=80?"p-red":v<=20?"p-green":"p-amber"; }
 
+/* 大机会告警——规则来自 historical_data 回溯(edge_scanner.py，31标的5年)，非拍脑袋：
+   强买入 RSI<20 极端超卖：触发37次、20日上涨87%、Wilson下界72%、平均+10.7%、盈亏比9.8；
+   买入   RSI<25 深度超卖：触发208次、20日上涨79%、Wilson下界73%、平均+8.9%、盈亏比3.4；
+   减仓   PE五年分位>95 且 RSI>70(高估值+超买双重过热)：31标的回溯 edge+7.5%、20日预期收益压到~0。
+         (纯"高估值/贴顶"扩池后 edge 仅+1.8%已失效；做空仍是负期望，故减仓只作规避止盈，绝不代表做空。) */
+function signalOf(r){
+  const rsi=r.rsi, pe=r.pct;
+  if(rsi!=null && rsi<20){
+    return {type:"buy", cls:"sig-buy", txt:"强买入 ★",
+      tip:`RSI ${rsi.toFixed(1)} <20 极端超卖｜回溯(31标的5年)：触发37次、20日上涨87%(保守下界72%)、平均+10.7%、盈亏比9.8`};
+  }
+  if(rsi!=null && rsi<25){
+    return {type:"buy", cls:"sig-buy", txt:"买入",
+      tip:`RSI ${rsi.toFixed(1)} <25 深度超卖｜回溯(31标的5年)：触发208次、20日上涨79%(保守下界73%)、平均+8.9%、盈亏比3.4`};
+  }
+  if(pe!=null && pe>95 && rsi!=null && rsi>70){
+    return {type:"trim", cls:"sig-trim", txt:"减仓",
+      tip:`PE五年分位 ${pe} >95 且 RSI ${rsi.toFixed(1)} >70（高估值+超买双重过热）｜31标的回溯：20日下跌概率51%、edge+7.5%、预期收益已压到~0，宜止盈别追高（数据不支持做空，仅作规避）`};
+  }
+  return null;
+}
+function renderAlerts(){
+  const el=document.getElementById("alerts"); if(!el) return;
+  const buys=[], trims=[];
+  ROWS.forEach(r=>{ const s=signalOf(r); if(s)(s.type==="buy"?buys:trims).push({r,s}); });
+  if(!buys.length && !trims.length){
+    el.innerHTML=`<span class="alert-empty">⚡ 当前无触发的大机会（买入 RSI&lt;25 / 强买入 RSI&lt;20 / 减仓 PE分位&gt;95且RSI&gt;70）——空仓等待也是纪律</span>`;
+    return;
+  }
+  const chip=({r,s})=>`<span class="alert-card alert-${s.type}" title="${s.tip}">${s.type==="buy"?"🟢":"🟠"} ${r.t} ${r.n} · ${s.txt}</span>`;
+  el.innerHTML=`<span class="alert-lead">⚡ 当前大机会</span>`+buys.map(chip).join("")+trims.map(chip).join("");
+}
+
 function cell(r,c,i){
   if(c.k==="idx") return `<td class="mut num">${i+1}</td>`;
   if(c.k==="t") return `<td><span class="code">${r.t}</span></td>`;
   if(c.k==="n") return `<td><span class="name">${r.n}</span></td>`;
   if(c.k==="g") return `<td><span class="sec">${r.g}</span></td>`;
+  if(c.k==="signal"){
+    const s=signalOf(r);
+    return s ? `<td title="${s.tip}"><span class="pill ${s.cls}">${s.txt}</span></td>` : `<td class="mut">—</td>`;
+  }
   const v=r[c.k];
   const disp=c.fmt?c.fmt(v):(v??"—");
   let mark="";
@@ -494,6 +560,7 @@ function render(){
   document.getElementById("asof").textContent=asofs.length?"收盘数据 "+asofs[asofs.length-1]:"";
   if(CACHE.ts){ const d=daysSince(CACHE.ts); setStatus(d>2?"stale":"ok", d<1?"刚刚更新":Math.floor(d)+"天前更新"); }
   else setStatus("stale","未刷新 · 点『刷新数据』");
+  renderAlerts();
   renderFoot();
 }
 function renderFoot(){
@@ -506,6 +573,10 @@ function renderFoot(){
       <b>MACD</b>(12,26,9) 金叉/死叉高亮，否则显示柱值(正绿负红)与零轴上下(多/空头区)；
       <b>BOLL</b>(20,2) 按%B分 破上轨/近上轨/中轨/近下轨/破下轨；
       <b>均线</b> MA20/50/200 判多头/空头排列，价距任一关键均线≤1.5%标「测MAxx」(潜在支撑/压力)。<br>
+    • <b>⚡大机会告警</b>（规则来自 <code>edge_scanner.py</code> 对 historical_data 回溯【31标的5年】，按 Wilson 置信下界筛选、剔除小样本假信号）：
+      <span class="pill sig-buy">买入</span> <b>RSI&lt;25</b> 深度超卖（<b>RSI&lt;20</b>=强买入★，更稀有更猛）——回溯：RSI&lt;25 触发208次/20日涨79%/下界73%/平均+8.9%/盈亏比3.4，RSI&lt;20 触发37次/涨87%/下界72%/平均+10.7%/盈亏比9.8；
+      <span class="pill sig-trim">减仓</span> <b>PE五年分位&gt;95 且 RSI&gt;70</b>（高估值+超买双重过热）——31标的回溯：20日下跌概率51%、edge+7.5%、预期收益压到~0，宜止盈别追高（纯"高估值/贴顶"扩池后 edge 仅+1.8%已失效）。
+      <b>注</b>：回溯证明做空「超买/高估值」是负期望，故减仓信号仅作规避止盈，<b>不代表做空</b>。<br>
     • <b>市盈率TTM</b> = 收盘价 ÷ 摊薄EPS(TTM)；无摊薄EPS时 = 市值 ÷ 归母净利润(如伯克希尔)。校验 AAPL/NVDA/AVGO/BRK.B 与富途一致。<br>
     • <b>近5年分位</b>：<u>实时计算</u> = 复权5年日线 ÷ 拆股还原的滚动TTM摊薄EPS 得历史PE序列，取当前PE百分位。已校验与富途基本一致（多数差≤3）。当数据源历史不足5年或缺摊薄EPS时（如 META 季度序列被截断、BRK.B 无摊薄EPS），<b>直接显示「—」缺失</b>（悬停看原因），<b>绝不用静态值冒充</b>。<br>
     • <b style="color:var(--blue)">ˢ号</b>：Polygon 的实验端点(vX)漏收了个别巨头最新季报(GOOGL/AMZN/META/LLY 迄今仅到 2025-12-31，经 SEC EDGAR 核实这些公司 2026-04-30 已申报)，工具已用 <b>SEC 官方 EPS</b> 修正为当前值，与富途一致。Polygon 补上后(finAsof≥覆盖季度)自动切回实时。<br>
