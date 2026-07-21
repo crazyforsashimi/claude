@@ -44,6 +44,8 @@ UNIVERSE = [
 ]
 
 YEARS_BACK = 5
+STALE_DAYS = 200   # 财报陈旧度上限(交易日距所用财报的公布日)。超过=中间有季度缺失(如银行Q4并入年报、
+                   # Polygon 漏季)导致 merge_asof 回退到过旧财报、TTM 滞后失真 → 该行估值全部置缺失，不冒充
 
 
 def load_api_key() -> str:
@@ -305,6 +307,14 @@ def add_fundamentals(df: pd.DataFrame, fdf: pd.DataFrame) -> pd.DataFrame:
     left["date_ts"] = pd.to_datetime(left["date"])
     fdf = fdf.sort_values("known_date")
     merged = pd.merge_asof(left.sort_values("date_ts"), fdf, left_on="date_ts", right_on="known_date", direction="backward")
+
+    # 财报陈旧度过滤：某交易日用的财报公布日距该日 > STALE_DAYS，说明中间有季度缺失(Polygon 常缺银行
+    # Q4/漏季)使 merge_asof 回退到过旧财报、TTM 滞后失真(如 JPM 缺 2024Q4 → 2025 全年 EPS 卡在旧值)。
+    # 此时该行估值全部置缺失，绝不用滞后值冒充；PE 分位据此自动跳过这些坏点。
+    stale = (merged["date_ts"] - pd.to_datetime(merged["known_date"])).dt.days > STALE_DAYS
+    fund_cols = ["eps_adj_ttm", "net_income_ttm", "revenue_ttm", "gross_profit_ttm",
+                 "operating_income_ttm", "equity", "liabilities", "shares_adj"]
+    merged.loc[stale, fund_cols] = np.nan
 
     eps_ttm = merged["eps_adj_ttm"]
     net_income_ttm = merged["net_income_ttm"]

@@ -58,8 +58,14 @@
   .p-green{color:var(--green);background:var(--green-bg)}
   .p-red{color:var(--red);background:var(--red-bg)}
   .p-amber{color:var(--amber);background:var(--amber-bg)}
-  .pill.sig-buy{color:#fff;background:var(--green)}
-  .pill.sig-trim{color:#fff;background:var(--amber)}
+  .pill.sig-buy{color:#fff;background:var(--green);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+  .pill.sig-trim{color:#fff;background:var(--amber);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+  td.op-buy{background:var(--green-bg)}
+  td.op-trim{background:var(--amber-bg)}
+  .view-tag{font-size:12px;font-weight:500;font-variant-numeric:tabular-nums;opacity:.8}
+  .view-tag.view-bull{color:var(--green)}
+  .view-tag.view-bear{color:var(--red)}
+  .view-tag.view-neutral{color:var(--muted)}
   .alerts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;min-height:20px}
   .alert-card{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;cursor:default}
   .alert-buy{background:var(--green-bg);color:var(--green);border:1px solid var(--green)}
@@ -125,7 +131,7 @@
     <span><b style="color:var(--blue)">ˢ</b> = 已用 SEC 官方 EPS 修正（Polygon 漏收季报）</span>
     <span><b style="color:var(--amber)">*</b> = 数据源财报滞后（悬停看详情）</span>
     <span><span class="pill sig-buy">买入</span>/<span class="pill sig-trim">减仓</span> = 回溯验证的大机会（悬停看依据）：买入 RSI&lt;25（&lt;20=强买入★）深度超卖；卖出 PE五年分位&gt;95 且 RSI&gt;70（高估值+超买，仅非高波动股，供参考非做空）</span>
-    <span><span class="pill p-green">看多</span>/<span class="pill mut">观望</span>/<span class="pill p-red">看空</span> = 当日技术面 6 指标(均线/位置/MACD/RSI/KDJ/BOLL)投票综合，悬停看构成</span>
+    <span><span class="view-tag view-bull">看多</span> / <span class="view-tag view-neutral">观望</span> / <span class="view-tag view-bear">看空</span> = 当日技术面 6 指标(均线/位置/MACD/RSI/KDJ/BOLL)投票综合，悬停看构成</span>
   </div>
 
   <div class="foot" id="foot"></div>
@@ -187,7 +193,6 @@ const COLS = [
   {k:"view",  label:"看法",     sortable:false},
   {k:"mktcap",label:"市值",     fmt:fmtCap},
   {k:"peTTM",label:"市盈率TTM", fmt:v=>fmtNum(v,2)},
-  {k:"indPE",label:"行业均值PE",fmt:v=>fmtNum(v,2)},
   {k:"pct",  label:"近5年分位", fmt:fmtPct},
   {k:"rsi",  label:"RSI(14)",   fmt:v=>fmtNum(v,1)},
   {k:"kdj",  label:"KDJ",       sortable:false},
@@ -467,7 +472,7 @@ function signalOf(r){
   }
   if(pe!=null && pe>95 && rsi!=null && rsi>70 && !HI_VOL.has(r.t)){
     return {type:"trim", cls:"sig-trim", txt:"卖出",
-      tip:`PE五年分位 ${pe} >95 且 RSI ${rsi.toFixed(1)} >70（高估值+超买）｜仅非高波动股生效｜回溯：金融股极准(GS跌76%/JPM70%)、整体20日下跌51%，供你自行判断（非强制做空）`};
+      tip:`PE五年分位 ${pe} >95 且 RSI ${rsi.toFixed(1)} >70（高估值+超买）｜仅非高波动股生效｜回溯(已修正估值滞后)：金融股极准(GS76%/MS74%/JPM78%)、整体20日下跌58%/edge+15%，供你自行判断（非强制做空）`};
   }
   return null;
 }
@@ -502,11 +507,11 @@ function viewOf(r){
   if(s>0 && (rsi>75 || (b&&b.pctB>100))) warn="；⚠已超买注意回调";
   else if(s<0 && (rsi<25 || (b&&b.pctB<0))) warn="；⚠已超卖或有反弹";
   let txt, cls;
-  if(s>=4){txt="看多 ★"; cls="p-green";}
-  else if(s>=2){txt="看多"; cls="p-green";}
-  else if(s<=-4){txt="看空 ★"; cls="p-red";}
-  else if(s<=-2){txt="看空"; cls="p-red";}
-  else {txt="观望"; cls="mut";}
+  if(s>=4){txt="看多 ★"; cls="view-bull";}
+  else if(s>=2){txt="看多"; cls="view-bull";}
+  else if(s<=-4){txt="看空 ★"; cls="view-bear";}
+  else if(s<=-2){txt="看空"; cls="view-bear";}
+  else {txt="观望"; cls="view-neutral";}
   const tip=`技术面评分 ${s>0?"+":""}${s}${warn}｜看多：${pros.join("、")||"无"}｜看空：${cons.join("、")||"无"}`;
   return {txt, cls, tip};
 }
@@ -530,11 +535,13 @@ function cell(r,c,i){
   if(c.k==="g") return `<td><span class="sec">${r.g}</span></td>`;
   if(c.k==="signal"){
     const s=signalOf(r);
-    return s ? `<td title="${s.tip}"><span class="pill ${s.cls}">${s.txt}</span></td>` : `<td class="mut">—</td>`;
+    if(!s) return `<td class="mut">—</td>`;
+    const tdcls = s.type==="buy" ? "op-buy" : "op-trim";
+    return `<td class="${tdcls}" title="${s.tip}"><span class="pill ${s.cls}">${s.txt}</span></td>`;
   }
   if(c.k==="view"){
     const w=viewOf(r);
-    return w ? `<td title="${w.tip}"><span class="pill ${w.cls}">${w.txt}</span></td>` : `<td class="mut">—</td>`;
+    return w ? `<td title="${w.tip}"><span class="view-tag ${w.cls}">${w.txt}</span></td>` : `<td class="mut">—</td>`;
   }
   const v=r[c.k];
   const disp=c.fmt?c.fmt(v):(v??"—");
@@ -623,14 +630,14 @@ function renderFoot(){
       <b>均线</b> MA20/50/200 判多头/空头排列，价距任一关键均线≤1.5%标「测MAxx」(潜在支撑/压力)。<br>
     • <b>⚡大机会告警</b>（规则来自 <code>edge_scanner.py</code> 对 historical_data 回溯【31标的5年】，按 Wilson 置信下界筛选、剔除小样本假信号）：
       <span class="pill sig-buy">买入</span> <b>RSI&lt;25</b> 深度超卖（<b>RSI&lt;20</b>=强买入★，更稀有更猛）——回溯：RSI&lt;25 触发208次/20日涨79%/下界73%/平均+8.9%/盈亏比3.4，RSI&lt;20 触发37次/涨87%/下界72%/平均+10.7%/盈亏比9.8；
-      <span class="pill sig-trim">卖出</span> <b>PE五年分位&gt;95 且 RSI&gt;70</b>（高估值+超买）——<b>仅在非高波动标的生效</b>：回溯发现卖出信号在金融股极准（GS超买后跌76%/JPM70%/MS63%），但在高波动成长股失效（NVDA超买后仅24%下跌、越强越涨），故年化波动率≥40%的标的（NVDA/COIN/NET/SNOW/TSLA/AMD/MU 等）已排除在卖出信号外。
+      <span class="pill sig-trim">卖出</span> <b>PE五年分位&gt;95 且 RSI&gt;70</b>（高估值+超买）——<b>仅在非高波动标的生效</b>：回溯(已修正估值滞后)发现卖出信号在金融股极准（GS超买后跌76%/MS74%/JPM78%）、整体非高波动股20日下跌58%/edge+15%，但在高波动成长股失效（NVDA超买后仅24%下跌、越强越涨），故年化波动率≥40%的标的（NVDA/COIN/NET/SNOW/TSLA/AMD/MU 等）已排除在卖出信号外。
       <b>注</b>：此信号供你自行判断止盈/减仓，<b>不代表做空</b>（做空超买仍是负期望）。<br>
-    • <b>看法</b>（当日技术面综合，与"机会"列互补：机会=稀有高胜率信号，看法=每日粗略倾向）：把 <b>均线排列/价位/MACD/RSI/KDJ/BOLL</b> 6 维度投票汇总为 <span class="pill p-green">看多</span>(≥+2，≥+4加★) / <span class="pill mut">观望</span>(−1~+1) / <span class="pill p-red">看空</span>(≤−2，≤−4加★)，悬停看多空构成。<b>仅供快速扫读，不追求高准确率。</b><br>
+    • <b>看法</b>（当日技术面综合，与"机会"列互补：机会=稀有高胜率信号，看法=每日粗略倾向）：把 <b>均线排列/价位/MACD/RSI/KDJ/BOLL</b> 6 维度投票汇总为 <span class="view-tag view-bull">看多</span>(≥+2，≥+4加★) / <span class="view-tag view-neutral">观望</span>(−1~+1) / <span class="view-tag view-bear">看空</span>(≤−2，≤−4加★)，悬停看多空构成。<b>仅供快速扫读，不追求高准确率。</b><br>
     • <b>市盈率TTM</b> = 收盘价 ÷ 摊薄EPS(TTM)；无摊薄EPS时 = 市值 ÷ 归母净利润(如伯克希尔)。校验 AAPL/NVDA/AVGO/BRK.B 与富途一致。<br>
     • <b>近5年分位</b>：<u>实时计算</u> = 复权5年日线 ÷ 拆股还原的滚动TTM摊薄EPS 得历史PE序列，取当前PE百分位。已校验与富途基本一致（多数差≤3）。当数据源历史不足5年或缺摊薄EPS时（如 META 季度序列被截断、BRK.B 无摊薄EPS），<b>直接显示「—」缺失</b>（悬停看原因），<b>绝不用静态值冒充</b>。<br>
     • <b style="color:var(--blue)">ˢ号</b>：Polygon 的实验端点(vX)漏收了个别巨头最新季报(GOOGL/AMZN/META/LLY 迄今仅到 2025-12-31，经 SEC EDGAR 核实这些公司 2026-04-30 已申报)，工具已用 <b>SEC 官方 EPS</b> 修正为当前值，与富途一致。Polygon 补上后(finAsof≥覆盖季度)自动切回实时。<br>
     • <b style="color:var(--amber)">*号</b>：数据源财报滞后但暂无 SEC 覆盖值时的警告（当前无）。<br>
-    • <b>行业均值PE</b> = 自选股中同板块(≥2支)的 PE TTM 均值。<b>ETF(QQQ/SPY)</b> 无财报，仅价格类指标。<br>
+    • <b>ETF(QQQ/SPY)</b> 无财报，仅价格类指标。<br>
     • 结果缓存于浏览器本地，财报缓存 ${FIN_TTL_DAYS} 天；重开即时显示。`;
 }
 function setFilter(g){ filter=g; render(); }
