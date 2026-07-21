@@ -57,15 +57,18 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
     else:
         df = bd.add_fundamentals(df, pd.DataFrame())
     last = df.iloc[-1]
+    ma200 = last.get("ma200")
     return {"date": str(last["date"]), "rsi": last["rsi14"],
-            "pe_pctile": last.get("pe_percentile_causal")}
+            "pe_pctile": last.get("pe_percentile_causal"),
+            "pctB": last.get("boll_pctb"),
+            "above_ma200": bool(pd.notna(ma200) and last["close"] > ma200)}
 
 
 # 每组的标题/说明/主色(买入绿、卖出橙)
 GROUP_META = {
-    "strong": ("🟢 强买入", "RSI(14)&lt;20 极端超卖 · 回溯20日涨87% · 盈亏比9.8", "#12924f"),
-    "buy":    ("🟢 买入",   "RSI(14)&lt;25 深度超卖 · 回溯20日涨79% · 盈亏比3.4", "#12924f"),
-    "sell":   ("🟠 卖出/减仓参考", "PE五年分位&gt;95 且 RSI(14)&gt;70 · 仅非高波动股 · 非做空", "#b7791f"),
+    "strong": ("🟢 强买入", "稳健股 RSI(14)&lt;20 极端超卖 · 回溯涨88% · 下界70%", "#12924f"),
+    "buy":    ("🟢 买入",   "稳健股 RSI(14)&lt;25 深度超卖 · 动量股 破布林下轨且价在MA200上", "#12924f"),
+    "sell":   ("🟠 卖出/减仓参考", "PE五年分位&gt;95 且 RSI(14)&gt;70 · 仅稳健股 · 非做空", "#b7791f"),
 }
 
 
@@ -103,9 +106,9 @@ def build_messages(asof, groups):
 
 def main():
     if os.environ.get("ALERT_TEST") == "true":   # 发一封带示例数据的真实样式邮件，供预览
-        sample = [("strong", [("NVDA", "英伟达", "RSI 18.5")]),
-                  ("buy", [("TSM", "台积电", "RSI 23.1"), ("AAPL", "苹果", "RSI 24.4")]),
-                  ("sell", [("GS", "高盛", "PE分位 98 · RSI 73")])]
+        sample = [("strong", [("AAPL", "苹果", "RSI(14) 18.5")]),
+                  ("buy", [("MSFT", "微软", "RSI(14) 23.1"), ("NVDA", "英伟达", "破布林下轨·价在MA200上")]),
+                  ("sell", [("GS", "高盛", "PE分位 98 · RSI(14) 73")])]
         md, html = build_messages("示例数据（这是测试预览，非真实信号）", sample)
         notify("⚡股票大机会 · 样式预览（测试）", md, html)
         return
@@ -127,12 +130,16 @@ def main():
             continue
         asof, rsi, pe = m["date"], m["rsi"], m["pe_pctile"]
         name = NAMES.get(tk, "")
-        if rsi < 20:
-            strong_buy.append((tk, name, f"RSI {rsi:.1f}"))
-        elif rsi < 25:
-            buy.append((tk, name, f"RSI {rsi:.1f}"))
-        if (not is_etf) and tk not in HI_VOL and pe is not None and pe > 95 and rsi > 70:
-            sell.append((tk, name, f"PE分位 {pe:.0f} · RSI {rsi:.1f}"))
+        if tk in HI_VOL:                 # 动量组：破布林下轨 且 价在 MA200 上（趋势回调）
+            if m["pctB"] is not None and m["pctB"] < 0 and m["above_ma200"]:
+                buy.append((tk, name, "破布林下轨·价在MA200上"))
+        else:                            # 稳健组：RSI(14) 超卖
+            if rsi < 20:
+                strong_buy.append((tk, name, f"RSI(14) {rsi:.1f}"))
+            elif rsi < 25:
+                buy.append((tk, name, f"RSI(14) {rsi:.1f}"))
+            if pe is not None and pe > 95 and rsi > 70:   # 卖出仅稳健组
+                sell.append((tk, name, f"PE分位 {pe:.0f}·RSI(14) {rsi:.1f}"))
 
     if not (strong_buy or buy or sell):
         print(f"数据截至 {asof}：今日无大机会信号，不推送。")

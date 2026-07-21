@@ -477,26 +477,34 @@ function classifyPE(pe,ind){ if(pe==null||ind==null)return""; return pe>ind*1.15
 function classifyRSI(v){ if(v==null)return""; return v>=70?"p-red":v<=30?"p-green":""; }
 function classifyPct(v){ if(v==null)return""; return v>=80?"p-red":v<=20?"p-green":"p-amber"; }
 
-/* 大机会告警——规则来自 historical_data 回溯(edge_scanner.py，31标的5年)，非拍脑袋：
-   强买入 RSI<20 极端超卖：触发37次、20日上涨87%、Wilson下界72%、平均+10.7%、盈亏比9.8；
-   买入   RSI<25 深度超卖：触发208次、20日上涨79%、Wilson下界73%、平均+8.9%、盈亏比3.4；
-   卖出   PE五年分位>95 且 RSI>70(高估值+超买)：仅在非高波动标的生效。
-         回溯发现卖出信号在金融股极准(GS超买后跌76%/JPM70%/MS63%)、在高波动成长股失效(NVDA超买后仅24%下跌、越强越涨)，
-         故 HI_VOL 名单(年化波动率≥40%)排除在卖出信号外。信号供参考，非强制做空。 */
+/* 大机会告警 · Tier 1 分组规则——按波动率分组，每组用 edge_scanner 分组回溯选出的冠军信号：
+   稳健组(非HI_VOL)：均值回归主导 → RSI(14) 超卖。强买入 RSI<20(涨88%/下界70%)、买入 RSI<25(涨86%/下界79%/盈亏比10.2)。
+   动量组(HI_VOL)  ：趋势跟随主导 → 破布林下轨且价在MA200上(上升趋势中的回调)，买入(涨65%/下界59%/盈亏比2.2)。
+                     动量组极端超卖样本太少(RSI<20 仅12次)、无可靠强买入档；也不出卖出信号(超买后倾向续涨)。
+   卖出(仅稳健组)  ：PE五年分位>95 且 RSI>70(高估值+超买)，金融股极准(GS76%/MS74%/JPM78%)，供止盈参考、非做空。
+   KDJ/MACD 实测独立 edge≈0，不进大机会信号(仅参与「看法」投票)。 */
 const HI_VOL = new Set(["LEU","COIN","NET","SNOW","TSLA","AMD","GEV","MU","NVDA","BABA","CEG","VST","AVGO"]);
 function signalOf(r){
-  const rsi=r.rsi, pe=r.pct;
+  const rsi=r.rsi, pe=r.pct, pctB=r.boll?.pctB, p=r.price, ma200=r.ma?.ma200;
+  if(HI_VOL.has(r.t)){          // 动量组：破布林下轨 且 价在 MA200 上（上升趋势中的回调）
+    if(pctB!=null && pctB<0 && p!=null && ma200!=null && p>ma200){
+      return {type:"buy", cls:"sig-buy", txt:"买入",
+        tip:`破布林下轨 且 价在MA200上（上升趋势中的回调买点）｜动量股回溯：触发238次、20日上涨65%、保守下界59%、平均+4.7%、盈亏比2.2`};
+    }
+    return null;               // 动量组不出强买入/卖出信号
+  }
+  // 稳健组：RSI(14) 超卖
   if(rsi!=null && rsi<20){
     return {type:"buy", cls:"sig-buy", txt:"强买入 ★",
-      tip:`RSI(14) ${rsi.toFixed(1)} <20 极端超卖｜回溯(31标的5年)：触发37次、20日上涨87%(保守下界72%)、平均+10.7%、盈亏比9.8`};
+      tip:`RSI(14) ${rsi.toFixed(1)} <20 极端超卖｜稳健股回溯：触发25次、20日上涨88%、保守下界70%、平均+8.2%、盈亏比3.3`};
   }
   if(rsi!=null && rsi<25){
     return {type:"buy", cls:"sig-buy", txt:"买入",
-      tip:`RSI(14) ${rsi.toFixed(1)} <25 深度超卖｜回溯(31标的5年)：触发208次、20日上涨79%(保守下界73%)、平均+8.9%、盈亏比3.4`};
+      tip:`RSI(14) ${rsi.toFixed(1)} <25 深度超卖｜稳健股回溯：触发133次、20日上涨86%、保守下界79%、平均+7.4%、盈亏比10.2`};
   }
-  if(pe!=null && pe>95 && rsi!=null && rsi>70 && !HI_VOL.has(r.t)){
+  if(pe!=null && pe>95 && rsi!=null && rsi>70){
     return {type:"trim", cls:"sig-trim", txt:"卖出",
-      tip:`PE五年分位 ${pe} >95 且 RSI(14) ${rsi.toFixed(1)} >70（高估值+超买）｜仅非高波动股生效｜回溯(已修正估值滞后)：金融股极准(GS76%/MS74%/JPM78%)、整体20日下跌58%/edge+15%，供你自行判断（非强制做空）`};
+      tip:`PE五年分位 ${pe} >95 且 RSI(14) ${rsi.toFixed(1)} >70（高估值+超买）｜回溯(已修正估值滞后)：金融股极准(GS76%/MS74%/JPM78%)、整体20日下跌58%/edge+15%，供你自行判断（非强制做空）`};
   }
   return null;
 }
@@ -666,7 +674,7 @@ function renderFoot(){
   document.getElementById("foot").innerHTML=`
     <b>数据说明</b>（Massive/Polygon Starter，按最近收盘实时计算）<br>
     • <b>技术面</b>（RSI/KDJ/MACD/BOLL/均线）由复权日线按标准公式算，悬停单元格看完整数值。高亮 <span class="pill p-red" style="padding:0 5px">红=超买/看空</span> <span class="pill p-green" style="padding:0 5px">绿=超卖/金叉</span> <span style="color:var(--amber)">琥珀=关键位</span>：RSI ≥70/≤30；KDJ K≥80或J≥100 / K≤20或J≤0，标金叉死叉；MACD 金叉死叉·柱值(正绿负红)·零轴多空；BOLL 按%B分五档；均线 MA20/50/200 多空排列，距关键均线≤1.5% 标「测MAxx」；量价=OBV 资金流向(近20日 z-score，>1 流入绿 / <−1 流出红)；背离=价创20日新高/低而 RSI 未跟随(顶背离红=回调预警 / 底背离绿=转强预警)。<br>
-    • <b>⚡机会</b>（<code>edge_scanner.py</code> 对 31 标的 5 年回溯，按 Wilson 置信下界筛选、剔小样本假信号）：<span class="pill sig-buy">买入</span> <b>RSI(14)&lt;25</b> 深度超卖（<b>RSI(14)&lt;20=强买入★</b>，更稀更猛）——RSI&lt;25 涨79%/下界73%/盈亏比3.4，RSI&lt;20 涨87%/下界72%/盈亏比9.8；<span class="pill sig-trim">卖出</span> <b>PE五年分位&gt;95 且 RSI&gt;70</b>（高估值+超买，<b>仅非高波动股</b>）——金融股极准(GS76%/MS74%/JPM78%)、整体下跌58%/edge+15%，高波动成长股(NVDA仅24%)已排除。卖出仅供判断止盈，<b>不代表做空</b>。<br>
+    • <b>⚡机会</b>（<code>edge_scanner.py</code> 分组回溯，Tier1 按波动率分组、每组用各自冠军信号）：<b>稳健股</b> <span class="pill sig-buy">强买入</span> RSI(14)&lt;20(涨88%/下界70%) · <span class="pill sig-buy">买入</span> RSI(14)&lt;25(涨86%/下界79%/盈亏比10.2)；<b>动量股</b> <span class="pill sig-buy">买入</span> 破布林下轨且价在MA200上(上升趋势中的回调，涨65%/下界59%/盈亏比2.2)；<span class="pill sig-trim">卖出</span> 仅稳健股 PE五年分位&gt;95且RSI(14)&gt;70(金融股极准 GS76%/MS74%/JPM78%，止盈参考非做空)。KDJ/MACD 实测独立 edge≈0，未纳入。<br>
     • <b>看法</b>（当日技术面粗略倾向，与「机会」列互补）：均线/价位/MACD/RSI/KDJ/BOLL/OBV资金流向/背离 8 维度投票 → <span class="view-tag view-bull">看多</span>(≥+2，≥+4★) / <span class="view-tag view-neutral">观望</span> / <span class="view-tag view-bear">看空</span>(≤−2，≤−4★)，悬停看多空构成。仅供快速扫读，不追求高准确率（实测量价/背离 edge 均弱，仅补全面性）。<br>
     • <b>估值</b>：市盈率TTM = 收盘价 ÷ 摊薄EPS(TTM)（无摊薄EPS时 = 市值 ÷ 归母净利润，如伯克希尔）；近5年分位 = 复权5年日线 ÷ 拆股还原TTM EPS 的历史PE百分位，与富途基本一致（多数差≤3）。<b>算不出时显示「—」缺失，绝不用静态值冒充</b>——如历史不足5年、无摊薄EPS(BRK.B)、缺季致TTM滞后。<br>
     • <b style="color:var(--blue)">ˢ</b> = Polygon 漏收某巨头最新季报时已用 SEC 官方 EPS 修正（补上自动切回）；<b style="color:var(--amber)">*</b> = 财报滞后警告（当前无）；<b>ETF</b>(QQQ/SPY) 无财报，仅价格指标。<br>
