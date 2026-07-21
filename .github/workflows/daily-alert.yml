@@ -4,7 +4,12 @@ on:
   schedule:
     # UTC 22:00 周一~周五 = 美东 18:00(夏令时)/17:00(冬令时)，美股收盘后、EOD 数据已就绪
     - cron: "0 22 * * 1-5"
-  workflow_dispatch:   # 允许在 Actions 页手动点「Run workflow」测试
+  workflow_dispatch:   # 允许在 Actions 页手动点「Run workflow」
+    inputs:
+      test:
+        description: "只发一封测试通知(验证邮件/微信配置)，不做实际检测"
+        type: boolean
+        default: false
 
 jobs:
   alert:
@@ -26,4 +31,5 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_TO: ${{ secrets.SMTP_TO }}
+          ALERT_TEST: ${{ github.event.inputs.test }}
         run: python daily_alert.py

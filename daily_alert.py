@@ -62,6 +62,10 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
 
 
 def main():
+    if os.environ.get("ALERT_TEST") == "true":
+        notify("⚡ 告警测试", "这是一封测试消息。收到即表示通知渠道已配好——之后每个交易日美股收盘后，"
+                             "有 RSI<20/25 买入或高估值卖出信号时会自动推送给你。")
+        return
     key = get_key()
     end = pd.Timestamp.today().normalize()
     start = end - pd.DateOffset(years=5)
