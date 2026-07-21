@@ -1,0 +1,29 @@
+name: 每日大机会告警
+
+on:
+  schedule:
+    # UTC 22:00 周一~周五 = 美东 18:00(夏令时)/17:00(冬令时)，美股收盘后、EOD 数据已就绪
+    - cron: "0 22 * * 1-5"
+  workflow_dispatch:   # 允许在 Actions 页手动点「Run workflow」测试
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 安装依赖
+        run: pip install requests numpy pandas
+      - name: 检测并推送大机会
+        env:
+          MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+          SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
+          # 邮件(可选)：如需邮件推送，再在 Secrets 里加这几个
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_TO: ${{ secrets.SMTP_TO }}
+        run: python daily_alert.py
