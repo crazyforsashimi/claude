@@ -364,6 +364,9 @@ async function fetchTicker(u){
     const ys=new Date(new Date().getFullYear(),0,1).getTime();             // 年初至今：今年首个交易日收盘
     let yb=null; for(const b of ab){ if(b.t>=ys){ yb=b.c; break; } }
     rec.ytd=yb?rec.price/yb-1:null;
+    // 100日布林下轨(≈20周级大支撑，用于 SNOW/TSLA/BABA 的买入判断)
+    if(cl.length>=100){ const m100=avg(cl.slice(-100)); const s100=Math.sqrt(avg(cl.slice(-100).map(x=>(x-m100)**2))); rec.below100=rec.price<=m100-2*s100; }
+    else rec.below100=false;
     // OBV 资金流向(近20日 z-score)：>1 流入 / <−1 流出
     const obv=[0]; for(let i=1;i<cl.length;i++)obv.push(obv[i-1]+(cl[i]>cl[i-1]?vol[i]:cl[i]<cl[i-1]?-vol[i]:0));
     const ow=obv.slice(-20), om=avg(ow), os=Math.sqrt(avg(ow.map(x=>(x-om)**2)));
@@ -460,7 +463,7 @@ function compute(){
       mktcap:d.mktcap??null, peTTM:d.peTTM??null,
       pct:d.pct??null, pctReason:d.pctReason,
       rsi:d.rsi??null, macd:d.macd, kdj:d.kdj, boll:d.boll, ma:d.ma, price:d.price, distHi:d.distHi??null,
-      obvZ:d.obvZ??null, bullDiv:!!d.bullDiv, bearDiv:!!d.bearDiv, chg1d:d.chg1d??null, ytd:d.ytd??null,
+      obvZ:d.obvZ??null, bullDiv:!!d.bullDiv, bearDiv:!!d.bearDiv, chg1d:d.chg1d??null, ytd:d.ytd??null, below100:!!d.below100,
       asof:d.asof, err:d.err, finStale:d.finStale, finAsof:d.finAsof, epsSrc:d.epsSrc, epsThru:d.epsThru,
     };
   });
@@ -477,21 +480,32 @@ function classifyPE(pe,ind){ if(pe==null||ind==null)return""; return pe>ind*1.15
 function classifyRSI(v){ if(v==null)return""; return v>=70?"p-red":v<=30?"p-green":""; }
 function classifyPct(v){ if(v==null)return""; return v>=80?"p-red":v<=20?"p-green":"p-amber"; }
 
-/* 大机会告警 · Tier 1 分组规则——按波动率分组，每组用 edge_scanner 分组回溯选出的冠军信号：
-   稳健组(非HI_VOL)：均值回归主导 → RSI(14) 超卖。强买入 RSI<20(涨88%/下界70%)、买入 RSI<25(涨86%/下界79%/盈亏比10.2)。
-   动量组(HI_VOL)  ：趋势跟随主导 → 破布林下轨且价在MA200上(上升趋势中的回调)，买入(涨65%/下界59%/盈亏比2.2)。
-                     动量组极端超卖样本太少(RSI<20 仅12次)、无可靠强买入档；也不出卖出信号(超买后倾向续涨)。
-   卖出(仅稳健组)  ：PE五年分位>95 且 RSI>70(高估值+超买)，金融股极准(GS76%/MS74%/JPM78%)，供止盈参考、非做空。
+/* 大机会告警 · Tier2 分组规则——波动率分组 + 动量组内按标的性格再分三档（同一"破下轨"信号在标的间天差地别）：
+   稳健组(非HI_VOL)：均值回归 → RSI(14) 超卖。强买入<20(涨88%/下界70%)、买入<25(涨86%/下界79%/盈亏比10.2)。
+   动量组(HI_VOL) 三档：
+     · 趋势回调组(半导体/AI硬件/电力 8只)：破日线布林下轨 且 价在MA200上(涨65%/下界59%)。
+     · 大级别支撑组(SNOW/TSLA/BABA)：破 100日布林下轨(≈20周级支撑，涨71-74%/下界57-60%；日线20布林对它们无效)。
+     · 无信号(NET/COIN)：连大级别支撑都失效(涨48-49%)，暂无可靠买入信号。
+   卖出(仅稳健组)：PE五年分位>95 且 RSI>70，金融股极准(GS76%/MS74%/JPM78%)，止盈参考、非做空。
    KDJ/MACD 实测独立 edge≈0，不进大机会信号(仅参与「看法」投票)。 */
 const HI_VOL = new Set(["LEU","COIN","NET","SNOW","TSLA","AMD","GEV","MU","NVDA","BABA","CEG","VST","AVGO"]);
+const MOM_DIP = new Set(["NVDA","AVGO","MU","AMD","GEV","CEG","LEU","VST"]);   // 破日线下轨+ma200顺势
+const MOM_BIG = new Set(["SNOW","TSLA","BABA"]);                              // 破100日布林(大级别支撑)
 function signalOf(r){
   const rsi=r.rsi, pe=r.pct, pctB=r.boll?.pctB, p=r.price, ma200=r.ma?.ma200;
-  if(HI_VOL.has(r.t)){          // 动量组：破布林下轨 且 价在 MA200 上（上升趋势中的回调）
-    if(pctB!=null && pctB<0 && p!=null && ma200!=null && p>ma200){
-      return {type:"buy", cls:"sig-buy", txt:"买入",
-        tip:`破布林下轨 且 价在MA200上（上升趋势中的回调买点）｜动量股回溯：触发238次、20日上涨65%、保守下界59%、平均+4.7%、盈亏比2.2`};
+  if(HI_VOL.has(r.t)){
+    if(MOM_DIP.has(r.t)){         // 趋势回调组：破日线布林下轨 且 价在 MA200 上
+      if(pctB!=null && pctB<0 && p!=null && ma200!=null && p>ma200){
+        return {type:"buy", cls:"sig-buy", txt:"买入",
+          tip:`破布林下轨 且 价在MA200上（上升趋势中的回调买点）｜动量·趋势回调组回溯：20日上涨65%、保守下界59%、盈亏比2.2`};
+      }
+    } else if(MOM_BIG.has(r.t)){  // 大级别支撑组：破 100 日布林下轨（≈20周级大支撑）
+      if(r.below100){
+        return {type:"buy", cls:"sig-buy", txt:"买入",
+          tip:`破 100 日布林下轨（≈20周级大支撑；日线20布林对此类无效）｜SNOW/TSLA/BABA 回溯：20日上涨71-74%、保守下界57-60%`};
+      }
     }
-    return null;               // 动量组不出强买入/卖出信号
+    return null;                  // 含 NET/COIN(无可靠信号)与未触发的动量股；动量组不出强买入/卖出
   }
   // 稳健组：RSI(14) 超卖
   if(rsi!=null && rsi<20){
@@ -674,7 +688,7 @@ function renderFoot(){
   document.getElementById("foot").innerHTML=`
     <b>数据说明</b>（Massive/Polygon Starter，按最近收盘实时计算）<br>
     • <b>技术面</b>（RSI/KDJ/MACD/BOLL/均线）由复权日线按标准公式算，悬停单元格看完整数值。高亮 <span class="pill p-red" style="padding:0 5px">红=超买/看空</span> <span class="pill p-green" style="padding:0 5px">绿=超卖/金叉</span> <span style="color:var(--amber)">琥珀=关键位</span>：RSI ≥70/≤30；KDJ K≥80或J≥100 / K≤20或J≤0，标金叉死叉；MACD 金叉死叉·柱值(正绿负红)·零轴多空；BOLL 按%B分五档；均线 MA20/50/200 多空排列，距关键均线≤1.5% 标「测MAxx」；量价=OBV 资金流向(近20日 z-score，>1 流入绿 / <−1 流出红)；背离=价创20日新高/低而 RSI 未跟随(顶背离红=回调预警 / 底背离绿=转强预警)。<br>
-    • <b>⚡机会</b>（<code>edge_scanner.py</code> 分组回溯，Tier1 按波动率分组、每组用各自冠军信号）：<b>稳健股</b> <span class="pill sig-buy">强买入</span> RSI(14)&lt;20(涨88%/下界70%) · <span class="pill sig-buy">买入</span> RSI(14)&lt;25(涨86%/下界79%/盈亏比10.2)；<b>动量股</b> <span class="pill sig-buy">买入</span> 破布林下轨且价在MA200上(上升趋势中的回调，涨65%/下界59%/盈亏比2.2)；<span class="pill sig-trim">卖出</span> 仅稳健股 PE五年分位&gt;95且RSI(14)&gt;70(金融股极准 GS76%/MS74%/JPM78%，止盈参考非做空)。KDJ/MACD 实测独立 edge≈0，未纳入。<br>
+    • <b>⚡机会</b>（<code>edge_scanner.py</code> 分组回溯，Tier2 波动率分组 + 动量组按标的性格三档）：<b>稳健股</b> <span class="pill sig-buy">强买入</span> RSI(14)&lt;20(涨88%/下界70%) · <span class="pill sig-buy">买入</span> RSI(14)&lt;25(涨86%/下界79%/盈亏比10.2) · <span class="pill sig-trim">卖出</span> PE分位&gt;95且RSI(14)&gt;70(金融股极准 GS76%/MS74%/JPM78%，止盈非做空)；<b>动量股三档</b>：趋势回调组(半导体/电力) 破下轨且价ma200上(涨65%/下界59%) · 大级别支撑组(SNOW/TSLA/BABA) 破100日布林下轨(涨71-74%/下界57-60%) · NET/COIN 无可靠信号、暂不提示。KDJ/MACD 实测 edge≈0 未纳入。<br>
     • <b>看法</b>（当日技术面粗略倾向，与「机会」列互补）：均线/价位/MACD/RSI/KDJ/BOLL/OBV资金流向/背离 8 维度投票 → <span class="view-tag view-bull">看多</span>(≥+2，≥+4★) / <span class="view-tag view-neutral">观望</span> / <span class="view-tag view-bear">看空</span>(≤−2，≤−4★)，悬停看多空构成。仅供快速扫读，不追求高准确率（实测量价/背离 edge 均弱，仅补全面性）。<br>
     • <b>估值</b>：市盈率TTM = 收盘价 ÷ 摊薄EPS(TTM)（无摊薄EPS时 = 市值 ÷ 归母净利润，如伯克希尔）；近5年分位 = 复权5年日线 ÷ 拆股还原TTM EPS 的历史PE百分位，与富途基本一致（多数差≤3）。<b>算不出时显示「—」缺失，绝不用静态值冒充</b>——如历史不足5年、无摊薄EPS(BRK.B)、缺季致TTM滞后。<br>
     • <b style="color:var(--blue)">ˢ</b> = Polygon 漏收某巨头最新季报时已用 SEC 官方 EPS 修正（补上自动切回）；<b style="color:var(--amber)">*</b> = 财报滞后警告（当前无）；<b>ETF</b>(QQQ/SPY) 无财报，仅价格指标。<br>

@@ -22,6 +22,9 @@ import build_dataset as bd   # 复用取数/指标/估值逻辑，口径一致
 # 与 index.html / edge_scanner 一致的高波动名单：这些标的不出卖出信号(超买后倾向续涨)
 HI_VOL = {"LEU", "COIN", "NET", "SNOW", "TSLA", "AMD", "GEV", "MU", "NVDA",
           "BABA", "CEG", "VST", "AVGO"}
+# 动量组 Tier2 三档：趋势回调(破日线下轨+ma200) / 大级别支撑(破100日布林) / 无信号(NET,COIN)
+MOM_DIP = {"NVDA", "AVGO", "MU", "AMD", "GEV", "CEG", "LEU", "VST"}
+MOM_BIG = {"SNOW", "TSLA", "BABA"}
 NAMES = {
     "AAPL": "苹果", "MSFT": "微软", "GOOGL": "谷歌", "AMZN": "亚马逊", "NVDA": "英伟达",
     "META": "Meta", "TSLA": "特斯拉", "MCD": "麦当劳", "TSM": "台积电", "JPM": "摩根大通",
@@ -58,16 +61,19 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
         df = bd.add_fundamentals(df, pd.DataFrame())
     last = df.iloc[-1]
     ma200 = last.get("ma200")
+    c = df["close"]
+    m100, s100 = c.rolling(100).mean().iloc[-1], c.rolling(100).std().iloc[-1]
     return {"date": str(last["date"]), "rsi": last["rsi14"],
             "pe_pctile": last.get("pe_percentile_causal"),
             "pctB": last.get("boll_pctb"),
-            "above_ma200": bool(pd.notna(ma200) and last["close"] > ma200)}
+            "above_ma200": bool(pd.notna(ma200) and last["close"] > ma200),
+            "below100": bool(pd.notna(m100) and last["close"] <= m100 - 2 * s100)}
 
 
 # 每组的标题/说明/主色(买入绿、卖出橙)
 GROUP_META = {
     "strong": ("🟢 强买入", "稳健股 RSI(14)&lt;20 极端超卖 · 回溯涨88% · 下界70%", "#12924f"),
-    "buy":    ("🟢 买入",   "稳健股 RSI(14)&lt;25 深度超卖 · 动量股 破布林下轨且价在MA200上", "#12924f"),
+    "buy":    ("🟢 买入",   "稳健股 RSI(14)&lt;25 · 动量·趋势回调组 破下轨且价ma200上 · 大级别支撑组(SNOW/TSLA/BABA) 破100日布林", "#12924f"),
     "sell":   ("🟠 卖出/减仓参考", "PE五年分位&gt;95 且 RSI(14)&gt;70 · 仅稳健股 · 非做空", "#b7791f"),
 }
 
@@ -107,7 +113,8 @@ def build_messages(asof, groups):
 def main():
     if os.environ.get("ALERT_TEST") == "true":   # 发一封带示例数据的真实样式邮件，供预览
         sample = [("strong", [("AAPL", "苹果", "RSI(14) 18.5")]),
-                  ("buy", [("MSFT", "微软", "RSI(14) 23.1"), ("NVDA", "英伟达", "破布林下轨·价在MA200上")]),
+                  ("buy", [("MSFT", "微软", "RSI(14) 23.1"), ("NVDA", "英伟达", "破布林下轨·价在MA200上"),
+                           ("TSLA", "特斯拉", "破100日布林下轨(大支撑)")]),
                   ("sell", [("GS", "高盛", "PE分位 98 · RSI(14) 73")])]
         md, html = build_messages("示例数据（这是测试预览，非真实信号）", sample)
         notify("⚡股票大机会 · 样式预览（测试）", md, html)
@@ -130,9 +137,14 @@ def main():
             continue
         asof, rsi, pe = m["date"], m["rsi"], m["pe_pctile"]
         name = NAMES.get(tk, "")
-        if tk in HI_VOL:                 # 动量组：破布林下轨 且 价在 MA200 上（趋势回调）
-            if m["pctB"] is not None and m["pctB"] < 0 and m["above_ma200"]:
-                buy.append((tk, name, "破布林下轨·价在MA200上"))
+        if tk in HI_VOL:                 # 动量组 Tier2 三档
+            if tk in MOM_DIP:            # 趋势回调：破日线布林下轨 且 价在 MA200 上
+                if m["pctB"] is not None and m["pctB"] < 0 and m["above_ma200"]:
+                    buy.append((tk, name, "破布林下轨·价在MA200上"))
+            elif tk in MOM_BIG:         # 大级别支撑：破 100 日布林下轨
+                if m["below100"]:
+                    buy.append((tk, name, "破100日布林下轨(大支撑)"))
+            # NET/COIN：无可靠信号，不触发
         else:                            # 稳健组：RSI(14) 超卖
             if rsi < 20:
                 strong_buy.append((tk, name, f"RSI(14) {rsi:.1f}"))
