@@ -83,6 +83,22 @@
   .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:10px 2px 0}
   .legend span{display:inline-flex;align-items:center;gap:5px}
   a{color:var(--blue)}
+  /* 机会标签的自定义悬浮卡片 */
+  .optip{cursor:help}
+  .optip-pop{position:fixed;z-index:200;max-width:360px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:12px 14px;font-size:12.5px;
+    line-height:1.5;color:var(--text);pointer-events:none;display:none}
+  .optip-pop .ohead{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;
+    padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .optip-pop .opill{color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px}
+  .optip-pop .otk{font-weight:700;letter-spacing:.3px}
+  .optip-pop .onm{color:var(--muted);font-size:12px}
+  .optip-pop .ogrp{margin-left:auto;font-size:11px;color:var(--muted);background:var(--head);padding:1px 8px;border-radius:4px}
+  .optip-pop .oseg{padding:3px 0 3px 15px;position:relative;color:var(--muted)}
+  .optip-pop .oseg::before{content:"•";position:absolute;left:3px}
+  .optip-pop .oseg.sig{color:var(--text);font-weight:600}
+  .optip-pop .oseg.warn{color:var(--red)}
+  .optip-pop .oseg.info{color:var(--amber)}
 </style>
 </head>
 <body>
@@ -497,6 +513,37 @@ function tickerStat(tk,key){const s=TICKER_STATS[tk]&&TICKER_STATS[tk][key];if(!
 const HI_VOL = new Set(["LEU","COIN","NET","SNOW","TSLA","AMD","GEV","MU","NVDA","BABA","CEG","VST","AVGO"]);
 const MOM_DIP = new Set(["NVDA","AVGO","MU","AMD","GEV","CEG","LEU","VST"]);   // 破日线下轨+ma200顺势
 const MOM_BIG = new Set(["SNOW","TSLA","BABA"]);                              // 破100日布林(大级别支撑)
+
+/* 机会标签的自定义悬浮卡片：解析 signalOf 的 tip(｜分隔) → bullet 分列 + 标的/组别/信号档头部 */
+function grpLabel(tk){ return HI_VOL.has(tk) ? (MOM_DIP.has(tk)?"趋势回调组":MOM_BIG.has(tk)?"大级别支撑组":"高波动·RSI档") : "稳健组"; }
+const _esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const OPOP = document.createElement("div"); OPOP.className="optip-pop"; document.body.appendChild(OPOP);
+function buildOptip(p){
+  let first=true;
+  const rows=decodeURIComponent(p.dataset.tip).split("｜").map(x=>x.trim()).filter(Boolean).map(seg=>{
+    let cls="oseg";
+    if(seg.startsWith("⚠️")) cls="oseg warn";
+    else if(seg.startsWith("ℹ️")) cls="oseg info";
+    else if(first) cls="oseg sig";
+    first=false;
+    return `<div class="${cls}">${_esc(seg)}</div>`;
+  }).join("");
+  const tc = p.dataset.typ==="buy" ? "var(--green)" : "var(--amber)";
+  return `<div class="ohead"><span class="opill" style="background:${tc}">${_esc(p.dataset.txt)}</span>`
+    +`<span class="otk">${_esc(p.dataset.tk)}</span><span class="onm">${_esc(p.dataset.nm)}</span>`
+    +`<span class="ogrp">${_esc(p.dataset.grp)}</span></div>${rows}`;
+}
+document.addEventListener("mouseover", e=>{
+  const p=e.target.closest(".optip"); if(!p) return;
+  OPOP.innerHTML=buildOptip(p); OPOP.style.display="block";
+  const r=p.getBoundingClientRect(), ew=OPOP.offsetWidth, eh=OPOP.offsetHeight;
+  let left=r.left, top=r.bottom+6;
+  if(left+ew>innerWidth-8) left=innerWidth-ew-8;          // 右侧不溢出
+  if(top+eh>innerHeight-8) top=r.top-eh-6;                // 下方放不下就翻到上方
+  OPOP.style.left=Math.max(8,left)+"px"; OPOP.style.top=Math.max(8,top)+"px";
+});
+document.addEventListener("mouseout", e=>{ if(e.target.closest(".optip")) OPOP.style.display="none"; });
+document.addEventListener("scroll", ()=>{ OPOP.style.display="none"; }, true);
 /* 事件闸门：判断"触发买入的这次下跌是不是财报暴雷砸的坑"。与 daily_alert.py 同口径。
    回溯：近15天内有财报日 且 财报当日/次日大阴线(单日<-6%)的买入信号，20日仅涨62%(下界52%)，
    明显差于温和回落/远离财报的71%——是接飞刀。据此给买入信号打红旗。
@@ -651,7 +698,8 @@ function cell(r,c,i){
     const s=signalOf(r);
     if(!s) return `<td class="mut">—</td>`;
     const tdcls = s.type==="buy" ? "op-buy" : "op-trim";
-    return `<td class="${tdcls}" title="${s.tip}"><span class="pill ${s.cls}">${s.txt}</span></td>`;
+    return `<td class="${tdcls}"><span class="pill ${s.cls} optip" data-tip="${encodeURIComponent(s.tip)}"`
+      +` data-tk="${r.t}" data-nm="${r.n}" data-grp="${grpLabel(r.t)}" data-typ="${s.type}" data-txt="${s.txt}">${s.txt}</span></td>`;
   }
   if(c.k==="view"){
     const w=viewOf(r);
