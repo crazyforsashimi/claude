@@ -509,7 +509,7 @@ function classifyPct(v){ if(v==null)return""; return v>=80?"p-red":v<=20?"p-gree
 /* 每标的-每信号的历史回溯[N,上涨率%]——来自外部 ticker_stats.js(build_ticker_stats.py 生成，每月定时 Action 自动更新)。
    在分组率之外额外显示个股率——N 小(甚至=1)也保留：它本身说明该信号在这只票上极罕见=极端，可靠性由 N 自证。 */
 const TICKER_STATS = (typeof window!=="undefined" && window.TICKER_STATS) || {};
-function tickerStat(tk,key){const s=TICKER_STATS[tk]&&TICKER_STATS[tk][key];if(!s||s[0]===0)return"本标的历史 0 次(极罕见)";return `本标的历史 ${s[0]} 次·涨率 5日${s[1]}% / 10日${s[2]}% / 20日${s[3]}%`;}
+function tickerStat(tk,key){const s=TICKER_STATS[tk]&&TICKER_STATS[tk][key];if(!s||s[0]===0)return"本标的过去五年 0 次(极罕见)";return `本标的过去五年回溯 ${s[0]} 次·涨率 5日${s[1]}% / 10日${s[2]}% / 20日${s[3]}%`;}
 const HI_VOL = new Set(["LEU","COIN","NET","SNOW","TSLA","AMD","GEV","MU","NVDA","BABA","CEG","VST","AVGO"]);
 const MOM_DIP = new Set(["NVDA","AVGO","MU","AMD","GEV","CEG","LEU","VST"]);   // 破日线下轨+ma200顺势
 const MOM_BIG = new Set(["SNOW","TSLA","BABA"]);                              // 破100日布林(大级别支撑)
