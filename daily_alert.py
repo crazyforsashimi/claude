@@ -172,36 +172,71 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
 # 每组的标题/说明/主色(买入绿、卖出橙)
 GROUP_META = {
     "strong": ("🟢 强买入", "稳健股 RSI(14)&lt;20 极端超卖 · 回溯涨88% · 下界70%", "#12924f"),
-    "buy":    ("🟢 买入",   "稳健股 RSI(14)&lt;25 · 动量·趋势回调组 破下轨且价ma200上 · 大级别支撑组(SNOW/TSLA/BABA) 破100日布林", "#12924f"),
+    "buy":    ("🟢 买入",   "深度超卖抄底信号 · 各标的所属分组见标签", "#12924f"),
     "sell":   ("🟠 卖出/减仓参考", "PE五年分位&gt;95 且 RSI(14)&gt;70 · 仅稳健股 · 非做空", "#b7791f"),
 }
 
 
+def group_label(tk):
+    """标的所属分组(与 index.html/logic.html 一致) → (标签文字, 背景色, 文字色)。"""
+    if tk in MOM_DIP:  return "趋势回调组", "#eef2ff", "#4f46e5"
+    if tk in MOM_BIG:  return "大级别支撑组", "#fef3c7", "#b45309"
+    return "稳健组", "#f1f3f6", "#5a6270"
+
+
+def _bullet_style(i, text, main_color):
+    """每条 bullet 的圆点色/文字色/字号：首条=信号描述(主色醒目)，其余按内容分类降噪。"""
+    if i == 0:                       return main_color, "#3a3f45", "13.5px"
+    if text.startswith("⚠️"):        return "#c0392b", "#c0392b", "12.5px"   # 财报暴雷坑
+    if text.startswith("ℹ️"):        return "#c3c8ce", "#8a6d3b", "12.5px"   # 财报数据滞后·中性提示
+    return "#c3c8ce", "#8a9099", "12.5px"                                    # 个股回溯率等
+
+
 def build_messages(asof, groups):
-    """groups: [(key, [(ticker,name,metric),...]), ...] → (markdown 给Server酱, HTML 给邮件)"""
+    """groups: [(key, [(ticker,name,metric),...]), ...] → (markdown 给Server酱, HTML 给邮件)。
+    metric 用 ｜ 分隔多段(信号描述｜个股率｜财报提示…) → 渲染成 bullet 分列 + 标的组别标签。"""
+    # ---- markdown（微信 Server酱）：嵌套 bullet ----
     md = [f"数据截至 {asof}"]
     for key, items in groups:
-        label, sub, _ = GROUP_META[key]
-        md.append(f"**{label}**（{sub}）\n" + "\n".join(f"- {t} {n}：{m}" for t, n, m in items))
+        label, _, _ = GROUP_META[key]
+        lines = [f"**{label}**"]
+        for t, n, m in items:
+            lines.append(f"- **{t}** {n}（{group_label(t)[0]}）")
+            for p in [x.strip() for x in m.split("｜") if x.strip()]:
+                lines.append(f"  - {p}")
+        md.append("\n".join(lines))
     md_txt = "\n\n".join(md).replace("&lt;", "<").replace("&gt;", ">")
 
+    # ---- HTML（邮件）：每标的一个 block，bullet 分列 + 组别标签 ----
     sections = ""
     for key, items in groups:
         label, sub, color = GROUP_META[key]
-        rows = "".join(
-            '<tr style="border-bottom:1px solid #eef0f2">'
-            f'<td style="padding:8px 0;font-weight:600;font-size:14px">{t}</td>'
-            f'<td style="padding:8px 10px;color:#8a9099;font-size:13px">{n}</td>'
-            f'<td style="padding:8px 0;text-align:right;font-size:14px;color:#3a3f45">{m}</td></tr>'
-            for t, n, m in items)
-        sections += (f'<div style="margin-bottom:22px">'
-                     f'<div style="font-weight:600;font-size:15px;color:{color}">{label}</div>'
-                     f'<div style="color:#8a9099;font-size:12px;margin:3px 0 6px">{sub}</div>'
-                     f'<table style="width:100%;border-collapse:collapse">{rows}</table></div>')
+        blocks = ""
+        for t, n, m in items:
+            gl, gbg, gfg = group_label(t)
+            parts = [x.strip() for x in m.split("｜") if x.strip()]
+            rows = ""
+            for i, p in enumerate(parts):
+                dot, txtcol, fs = _bullet_style(i, p, color)
+                rows += ('<tr>'
+                         f'<td style="vertical-align:top;color:{dot};padding:1px 8px 1px 0;font-size:13px">•</td>'
+                         f'<td style="font-size:{fs};color:{txtcol};padding:1px 0;line-height:1.5">{p}</td></tr>')
+            blocks += ('<div style="padding:12px 0;border-top:1px solid #eef0f2">'
+                       '<div style="margin-bottom:7px">'
+                       f'<span style="font-weight:700;font-size:15px">{t}</span>'
+                       f'<span style="color:#8a9099;font-size:13px;margin-left:6px">{n}</span>'
+                       f'<span style="display:inline-block;margin-left:8px;padding:1px 8px;border-radius:4px;'
+                       f'background:{gbg};color:{gfg};font-size:11px;font-weight:600;vertical-align:middle">{gl}</span>'
+                       '</div>'
+                       f'<table cellpadding="0" cellspacing="0" style="border-collapse:collapse">{rows}</table></div>')
+        sections += (f'<div style="margin-bottom:18px">'
+                     f'<div style="font-weight:700;font-size:15px;color:{color}">{label}</div>'
+                     f'<div style="color:#8a9099;font-size:12px;margin:2px 0 2px">{sub}</div>'
+                     f'{blocks}</div>')
     html = ('<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,'
-            'sans-serif;max-width:520px;margin:0 auto;padding:20px 18px;color:#1a1d21;background:#fff">'
-            '<div style="font-size:19px;font-weight:700;letter-spacing:.3px">⚡ 自选股机会信号</div>'
-            f'<div style="color:#8a9099;font-size:13px;margin:3px 0 24px">数据截至 {asof}</div>{sections}'
+            'sans-serif;max-width:560px;margin:0 auto;padding:22px 20px;color:#1a1d21;background:#fff">'
+            '<div style="font-size:20px;font-weight:700;letter-spacing:.3px">⚡ 自选股机会信号</div>'
+            f'<div style="color:#8a9099;font-size:13px;margin:4px 0 22px">数据截至 {asof}</div>{sections}'
             '<div style="color:#aab0b8;font-size:11px;border-top:1px solid #eef0f2;padding-top:14px;'
             'line-height:1.7">规则来自 edge_scanner 对 31 标的近 5 年回溯：买入=历史高胜率抄底信号；'
             '卖出仅供止盈参考、<b>非做空</b>。RSI 为日线 14 周期（Wilder 平滑）。'
@@ -214,7 +249,7 @@ def main():
         print("【测试模式】ALERT_TEST=true → 只发样式预览邮件，未做任何实际信号检测")
         sample = [("strong", [("AAPL", "苹果", "RSI(14) 18.5｜本标的3次涨100%")]),
                   ("buy", [("MSFT", "微软", "RSI(14) 23.1｜本标的12次涨86%"),
-                           ("NVDA", "英伟达", "破布林下轨·价在MA200上｜本标的20次涨90%"),
+                           ("GEV", "GE Vernova", "破布林下轨·价在MA200上｜本标的10次涨100%｜ℹ️财报数据仅到2026-04-22(91天前)，可能刚发新财报未入库，请核对是否财报暴雷"),
                            ("MU", "美光", "RSI(14) 24.0｜本标的5次涨80%｜⚠️财报暴雷坑(距财报6天·当日-9%·历史62%,慎接飞刀)"),
                            ("TSLA", "特斯拉", "破100日布林下轨(大支撑)｜本标的8次涨75%")]),
                   ("sell", [("GS", "高盛", "PE分位 98·RSI(14) 73")])]
