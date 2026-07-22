@@ -133,7 +133,8 @@ def build_messages(asof, groups):
 
 
 def main():
-    if os.environ.get("ALERT_TEST") == "true":   # 发一封带示例数据的真实样式邮件，供预览
+    if os.environ.get("ALERT_TEST") == "true":   # 仅当手动勾选 test 框时：发样式预览，不做实际检测
+        print("【测试模式】ALERT_TEST=true → 只发样式预览邮件，未做任何实际信号检测")
         sample = [("strong", [("AAPL", "苹果", "RSI(14) 18.5")]),
                   ("buy", [("MSFT", "微软", "RSI(14) 23.1"), ("NVDA", "英伟达", "破布林下轨·价在MA200上"),
                            ("TSLA", "特斯拉", "破100日布林下轨(大支撑)")]),
@@ -147,6 +148,7 @@ def main():
     start = end - pd.DateOffset(years=5)
     s, e = start.date().isoformat(), end.date().isoformat()
 
+    print(f"【生产模式】实际检测 {len(bd.UNIVERSE)} 个标的的大机会信号…")
     strong_buy, buy, sell = [], [], []
     asof = None
     n_fail = 0
