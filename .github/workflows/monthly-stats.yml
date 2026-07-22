@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: 安装依赖
-        run: pip install requests numpy pandas
+        run: pip install requests "numpy==2.2.6" "pandas==2.3.3"   # 锁版本：与本地双版本验证过的一致，防 pandas 升级再引入 merge_asof 精度类隐藏差异
       - name: 拉最新 5 年数据 + 生成个股率表
         env:
           MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
