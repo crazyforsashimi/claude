@@ -1,9 +1,7 @@
 name: 每月更新个股率表
 
 on:
-  schedule:
-    - cron: "0 6 1 * *"   # 每月 1 号 UTC 06:00 自动跑
-  workflow_dispatch:       # 也可手动触发
+  workflow_dispatch:       # 仅手动触发(碰运气)——云端共享IP 易被 Polygon 限速，工具表改由本地 build_ticker_stats 更新为主
 
 permissions:
   contents: write          # 允许 commit 回仓库
