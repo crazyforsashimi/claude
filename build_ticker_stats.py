@@ -52,11 +52,13 @@ def main():
     for tk in d.ticker.unique():
         e = {}
         if tk in HI_VOL:
+            e["rsi20"] = stat(tk, sigs["rsi20"])     # 动量组也加 RSI 极端超卖档(罕见=极端、反弹最猛)
+            e["rsi25"] = stat(tk, sigs["rsi25"])
             if tk in MOM_DIP:
                 e["dip"] = stat(tk, sigs["dip"])
             elif tk in MOM_BIG:
                 e["b100"] = stat(tk, sigs["b100"])
-            # NET/COIN 无信号
+            # NET/COIN 现在有 rsi20/rsi25(破布林无效但深度超卖有效)
         else:
             e["rsi20"] = stat(tk, sigs["rsi20"])
             e["rsi25"] = stat(tk, sigs["rsi25"])

@@ -284,14 +284,18 @@ def main():
         asof, rsi, pe = m["date"], m["rsi"], m["pe_pctile"]
         name = NAMES.get(tk, "")
         lm = landmine_tag(m)             # 事件闸门：这次下跌若是财报暴雷砸的，给买入信号挂红旗
-        if tk in HI_VOL:                 # 动量组 Tier2 三档
-            if tk in MOM_DIP:            # 趋势回调：破日线布林下轨 且 价在 MA200 上
+        if tk in HI_VOL:                 # 动量组：RSI 极端超卖优先(罕见=极端、反弹最猛)，其次各自破轨信号
+            if rsi < 20:                # 强买入：动量组整体 12次/20日83%/下界55%/均值+16.8%
+                strong_buy.append((tk, name, f"RSI(14) {rsi:.1f} 极端超卖｜{fmt_tstat(m['tstats']['rsi20'])}{lm}"))
+            elif rsi < 25:              # 买入：动量组整体 75次/20日67%/下界55%/均值+13.1%
+                buy.append((tk, name, f"RSI(14) {rsi:.1f} 深度超卖｜{fmt_tstat(m['tstats']['rsi25'])}{lm}"))
+            elif tk in MOM_DIP:         # RSI 未超卖：趋势回调 破日线下轨且价 MA200 上
                 if m["pctB"] is not None and m["pctB"] < 0 and m["above_ma200"]:
                     buy.append((tk, name, f"破布林下轨·价在MA200上｜{fmt_tstat(m['tstats']['dip'])}{lm}"))
-            elif tk in MOM_BIG:         # 大级别支撑：破 100 日布林下轨
+            elif tk in MOM_BIG:         # RSI 未超卖：大级别支撑 破 100 日布林下轨
                 if m["below100"]:
                     buy.append((tk, name, f"破100日布林下轨(大支撑)｜{fmt_tstat(m['tstats']['b100'])}{lm}"))
-            # NET/COIN：无可靠信号，不触发
+            # NET/COIN 现在有 RSI 档(破布林无效但深度超卖有效)；RSI 未超卖时无破轨信号
         else:                            # 稳健组：RSI(14) 超卖 或 破100日布林(大级别支撑)
             if rsi < 20:
                 strong_buy.append((tk, name, f"RSI(14) {rsi:.1f}｜{fmt_tstat(m['tstats']['rsi20'])}{lm}"))

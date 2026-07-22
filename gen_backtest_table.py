@@ -58,10 +58,12 @@ def main():
     GROUPS = [
         ("🛡️ 稳健组", "均值回归 · 非高波动 18 只", "#12924f",
          [t for t in NAMES if t not in HI_VOL], ["rsi20", "rsi25", "b100"]),
-        ("🚀 趋势回调组", "半导体/AI硬件/电力 · 破日线下轨且价MA200上", "#4f46e5",
-         [t for t in NAMES if t in MOM_DIP], ["dip"]),
-        ("🏛️ 大级别支撑组", "SNOW/TSLA/BABA · 破100日布林(≈20周级)", "#b45309",
-         [t for t in NAMES if t in MOM_BIG], ["b100"]),
+        ("🚀 趋势回调组", "半导体/AI硬件/电力 · RSI极端超卖 或 破日线下轨且价MA200上", "#4f46e5",
+         [t for t in NAMES if t in MOM_DIP], ["rsi20", "rsi25", "dip"]),
+        ("🏛️ 大级别支撑组", "SNOW/TSLA/BABA · RSI极端超卖 或 破100日布林", "#b45309",
+         [t for t in NAMES if t in MOM_BIG], ["rsi20", "rsi25", "b100"]),
+        ("⚡ 高波动·仅RSI极端档", "NET/COIN · 破布林抄底无效，只在深度超卖(RSI&lt;20/25)时出信号", "#7c3aed",
+         [t for t in NAMES if t in HI_VOL and t not in MOM_DIP and t not in MOM_BIG], ["rsi20", "rsi25"]),
     ]
 
     def pct_td(v, n):

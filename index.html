@@ -545,18 +545,27 @@ function signalOf(r){
 function signalCore(r){
   const rsi=r.rsi, pe=r.pct, pctB=r.boll?.pctB, p=r.price, ma200=r.ma?.ma200;
   if(HI_VOL.has(r.t)){
-    if(MOM_DIP.has(r.t)){         // 趋势回调组：破日线布林下轨 且 价在 MA200 上
+    // 动量组：RSI 极端超卖优先(罕见=极端、反弹最猛)，其次各自破轨信号
+    if(rsi!=null && rsi<20){
+      return {type:"buy", cls:"sig-buy", txt:"强买入 ★",
+        tip:`RSI(14) ${rsi.toFixed(1)} <20 极端超卖（动量股极罕见=极端）｜动量组整体：触发12次、20日涨83%、下界55%、均值+16.8%｜${tickerStat(r.t,'rsi20')}`};
+    }
+    if(rsi!=null && rsi<25){
+      return {type:"buy", cls:"sig-buy", txt:"买入",
+        tip:`RSI(14) ${rsi.toFixed(1)} <25 深度超卖｜动量组整体：触发75次、20日涨67%、下界55%、均值+13.1%｜${tickerStat(r.t,'rsi25')}`};
+    }
+    if(MOM_DIP.has(r.t)){         // RSI 未超卖：趋势回调组 破日线布林下轨 且 价在 MA200 上
       if(pctB!=null && pctB<0 && p!=null && ma200!=null && p>ma200){
         return {type:"buy", cls:"sig-buy", txt:"买入",
           tip:`破布林下轨 且 价在MA200上（上升趋势中的回调买点）｜趋势回调组整体：涨65%、下界59%、盈亏比2.2｜${tickerStat(r.t,'dip')}`};
       }
-    } else if(MOM_BIG.has(r.t)){  // 大级别支撑组：破 100 日布林下轨（≈20周级大支撑）
+    } else if(MOM_BIG.has(r.t)){  // RSI 未超卖：大级别支撑组 破 100 日布林下轨（≈20周级大支撑）
       if(r.below100){
         return {type:"buy", cls:"sig-buy", txt:"买入",
           tip:`破 100 日布林下轨（≈20周级大支撑；日线20布林对此类无效）｜大支撑组整体：涨71-74%、下界57-60%｜${tickerStat(r.t,'b100')}`};
       }
     }
-    return null;                  // 含 NET/COIN(无可靠信号)与未触发的动量股；动量组不出强买入/卖出
+    return null;                  // NET/COIN 仅在 RSI 超卖时出信号；未触发的动量股无破轨信号
   }
   // 稳健组：RSI(14) 超卖
   if(rsi!=null && rsi<20){

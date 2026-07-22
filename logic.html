@@ -126,36 +126,44 @@
     </div>
   </section>
 
-  <!-- 动量组 三档 -->
+  <!-- 动量组 · RSI 档 + 破轨三档 -->
   <section class="card">
     <header>
-      <h2>🚀 动量组 · 趋势跟随(Tier2 三档)</h2>
-      <span class="sub">HI_VOL · 13 支 · 同一"破下轨"信号 edge 天差地别 → 按标的性格再分档</span>
+      <h2>🚀 动量组 · RSI 极端超卖 + 破轨信号</h2>
+      <span class="sub">HI_VOL · 13 支 · RSI 深度超卖(罕见=极端)全组共用、优先;其次按性格各自破轨</span>
     </header>
-    <div class="tiers">
+    <div class="rules">
+      <div class="rule">
+        <div class="top"><span class="tag buy-strong">强买入 ★</span><span class="cond">RSI(14) &lt; 20（全组共用）</span></div>
+        <div class="stats"><span>整组 12 次</span><span>20日涨 <b>83%</b></span><span>下界 <b>55%</b></span><span>均值 <b>+16.8%</b></span></div>
+      </div>
+      <div class="rule">
+        <div class="top"><span class="tag buy">买入</span><span class="cond">RSI(14) &lt; 25（全组共用）</span></div>
+        <div class="stats"><span>整组 75 次</span><span>20日涨 <b>67%</b></span><span>下界 <b>55%</b></span><span>均值 <b>+13.1%</b></span></div>
+        <div class="note">动量股极少到 RSI 绝对超卖(GEV/NVDA/VST 近5年 <b>0 次</b>)——一旦跌到=极端行情,反弹比破下轨更猛(<b>+13~17% vs +8.8%</b>)。样本主要来自 BABA/TSLA/COIN。<b>之前误判为"样本太少不设档",实测扩到全13只后 75 次、下界 55% 可交易。</b>RSI 未超卖时,才看下面各自的破轨信号。</div>
+      </div>
+    </div>
+    <div class="tiers" style="margin-top:14px">
       <div class="tier">
         <div class="top"><span class="tag buy">趋势回调组</span></div>
         <div class="who">半导体 / AI 硬件 / 电力(8)<br>NVDA · AVGO · MU · AMD · GEV · CEG · LEU · VST</div>
-        <div class="tsig">破日线布林下轨 且 价在 MA200 上</div>
+        <div class="tsig">RSI 未超卖时:破日线下轨 且 价在 MA200 上</div>
         <div class="tstat">涨 65% · 下界 59% · 盈亏比 2.2</div>
-        <div class="note">强趋势中的回踩买点。裸破下轨无用,必须叠 MA200 顺势过滤。</div>
       </div>
       <div class="tier">
         <div class="top"><span class="tag buy">大级别支撑组</span></div>
         <div class="who">高波动软件 / 中概(3)<br>SNOW · TSLA · BABA</div>
-        <div class="tsig">破 100 日布林下轨(≈20 周级大支撑)</div>
+        <div class="tsig">RSI 未超卖时:破 100 日布林下轨(≈20周级)</div>
         <div class="tstat">涨 71-74% · 下界 57-60%</div>
-        <div class="note">日线 20 布林对它们无效,但更大级别的支撑才"够重"、真反弹。</div>
       </div>
-      <div class="tier dead">
-        <div class="top"><span class="tag none">无信号</span></div>
+      <div class="tier">
+        <div class="top"><span class="tag buy">仅 RSI 档</span></div>
         <div class="who">软件 / 加密(2)<br>NET · COIN</div>
-        <div class="tsig">— 暂不提示</div>
-        <div class="tstat">连大级别支撑都失效(涨 48-49%)</div>
-        <div class="note">技术上没有验证过的可靠抄底点,诚实留空、不硬凑信号。</div>
+        <div class="tsig">破布林无效,只在 RSI&lt;20/25 时出信号</div>
+        <div class="tstat">破布林 48-49%(无效)→ RSI 有效(20日 67%)</div>
       </div>
     </div>
-    <div class="note" style="margin-top:12px">动量组不设「强买入★」(极端超卖太罕见、样本不足),也不出「卖出」(超买后倾向继续涨,择顶=负期望)。</div>
+    <div class="note" style="margin-top:12px">RSI 极端超卖档<b>全组共用</b>(含原"无信号"的 NET/COIN——破布林无效但深度超卖有效,由此救活)。动量组仍不出「卖出」(超买后倾向续涨,择顶=负期望)。</div>
   </section>
 
   <!-- 事件闸门 -->
