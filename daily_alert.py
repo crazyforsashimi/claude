@@ -202,7 +202,7 @@ def main():
                            ("TSLA", "特斯拉", "破100日布林下轨(大支撑)｜本标的8次涨75%")]),
                   ("sell", [("GS", "高盛", "PE分位 98·RSI(14) 73")])]
         md, html = build_messages("示例数据（这是测试预览，非真实信号）", sample)
-        notify("⚡股票大机会 · 样式预览（测试）", md, html)
+        notify("自选股机会信号提示 · 样式预览（测试）", md, html)
         return
 
     key = get_key()
@@ -248,7 +248,7 @@ def main():
 
     if n_fail > 3:   # 拉取失败过多(可能云端限速)：明确告警，绝不静默漏报
         warn = f"本次 {n_fail}/{len(bd.UNIVERSE)} 个标的数据拉取失败(疑似限速)，未完整检测、可能漏报信号，请留意。"
-        notify("⚠️ 大机会告警·数据不全", warn, f'<div style="font-family:sans-serif;padding:12px;color:#b7791f">{warn}</div>')
+        notify("⚠️ 自选股机会信号·数据不全", warn, f'<div style="font-family:sans-serif;padding:12px;color:#b7791f">{warn}</div>')
         print("⚠️ " + warn)
 
     if not (strong_buy or buy or sell):
@@ -256,10 +256,10 @@ def main():
         return
 
     groups = [(k, v) for k, v in [("strong", strong_buy), ("buy", buy), ("sell", sell)] if v]
-    title = "⚡股票大机会 " + "·".join(filter(None, [
-        f"强买{len(strong_buy)}" if strong_buy else "",
-        f"买入{len(buy)}" if buy else "",
-        f"卖出{len(sell)}" if sell else ""]))
+    n_buy, n_sell = len(strong_buy) + len(buy), len(sell)   # 强买入并入买入计数（正文仍分组）
+    title = "自选股机会信号提示：" + "·".join(filter(None, [
+        f"买入{n_buy}" if n_buy else "",
+        f"卖出{n_sell}" if n_sell else ""]))
     md, html = build_messages(asof, groups)
     print(title + "\n" + md)
     notify(title, md, html)
