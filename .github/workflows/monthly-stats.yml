@@ -1,0 +1,34 @@
+name: 每月更新个股率表
+
+on:
+  schedule:
+    - cron: "0 6 1 * *"   # 每月 1 号 UTC 06:00 自动跑
+  workflow_dispatch:       # 也可手动触发
+
+permissions:
+  contents: write          # 允许 commit 回仓库
+
+jobs:
+  update-stats:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 安装依赖
+        run: pip install requests numpy pandas
+      - name: 拉最新 5 年数据 + 生成个股率表
+        env:
+          MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+        run: |
+          python build_dataset.py        # 31标的5年日线+基本面 → historical_data/(临时)
+          python build_labels.py         # → output/model_dataset.csv(临时)
+          python build_ticker_stats.py   # → ticker_stats.js(工具用，进仓库)
+      - name: 提交更新的 ticker_stats.js
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ticker_stats.js
+          git diff --staged --quiet || git commit -m "chore: 每月自动更新个股率表 ticker_stats.js [skip ci]"
+          git push

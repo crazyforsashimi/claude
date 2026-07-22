@@ -63,9 +63,9 @@ def main():
     (ROOT / "output").mkdir(exist_ok=True)
     (ROOT / "output" / "ticker_stats.json").write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     compact = json.dumps(out, ensure_ascii=False, separators=(",", ":"))
-    print(f"共 {len(out)} 标的，写入 output/ticker_stats.json\n")
-    print("=== 紧凑 JSON（粘进 index.html 的 TICKER_STATS 和 daily_alert.py）===")
-    print(compact)
+    # ticker_stats.js —— 工具 index.html 直接 <script src> 加载；进仓库，每月定时 Action 自动重跑更新
+    (ROOT / "ticker_stats.js").write_text(f"window.TICKER_STATS={compact};\n", encoding="utf-8")
+    print(f"共 {len(out)} 标的 → ticker_stats.js(工具) + output/ticker_stats.json")
 
 
 if __name__ == "__main__":

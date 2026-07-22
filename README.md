@@ -106,6 +106,7 @@ key 存在 **`config.js`** 里（被 `.gitignore` 忽略，不入仓库），由
 ```
 stock-screener/
 ├── index.html             # 选股工具本体（HTML/CSS/JS，部署 GitHub Pages）
+├── ticker_stats.js        # 个股率表(工具加载；每月 Action 自动重算+commit，进仓库)
 ├── config.example.js      # key 模板（复制为 config.js 填入你的 key）
 ├── config.js              # 你的真实 key（.gitignore 忽略，不入仓库）
 ├── README.md · .gitignore
@@ -117,8 +118,9 @@ stock-screener/
 │   ── 建模 / 告警 ──
 ├── edge_scanner.py        # 大机会条件扫描：分组回溯 + Wilson 下界 → output/edge_rules.csv
 ├── train_model.py         # 买入检测器：HGB + Purged Walk-Forward（结论：综合特征无 alpha）
-├── daily_alert.py         # 每日告警：检测信号 → 微信/邮件
-├── .github/workflows/     # daily-alert.yml：每交易日盘中 3 次定时触发
+├── daily_alert.py         # 每日告警：检测信号(实时算个股率) → 微信/邮件
+├── build_ticker_stats.py  # 生成个股率表 → ticker_stats.js（每月 Action 自动重跑）
+├── .github/workflows/     # daily-alert(盘中3次告警) + monthly-stats(每月重算个股率表)
 │   ── 生成数据(忽略) ──
 ├── historical_data/       # 原始日线数据
 └── output/                # 建模产物：model_dataset / edge_rules / oof_predictions / precision_curve
@@ -242,6 +244,7 @@ stock-screener/
 ---
 
 ## 变更记录
+- **v24（2026-07-22）**：个股率改为**免维护、无过期**。**邮件**(daily_alert)每次运行用实时拉的 5 年数据**当场算**个股率(永远最新、不落地)；**工具**个股率抽成外部 `ticker_stats.js`(进仓库)，由**每月定时 GitHub Action**(`monthly-stats.yml`)自动重拉数据→重算→commit 更新。`build_dataset` 支持环境变量 key(供云端 Action)。数据流：大数据临时拉/算完丢，只有 2KB 的 `ticker_stats.js` 进仓库。
 - **v23（2026-07-21）**：大机会提示新增**个股回溯率**——每个信号在分组整体率之外，额外显示该标的自己的历史(如实带样本数 N；N=1 也保留：反映该信号在这只票上极罕见=极端，可靠性由 N 自证、不冒充 edge)。破布林类信号个股样本足(N≥15)、差异大有参考价值(META 破100布林 94% vs MSFT 47%)；RSI 类个股样本少、作"极端程度+方向"参考。新增 `build_ticker_stats.py` 生成统计表(嵌入工具 TICKER_STATS + 邮件，数据刷新后重跑更新)。
 - **v22（2026-07-21）**：稳健组「买入」并入 **破100日布林下轨**（RSI<25 或 破100布林）。回测发现 100日布林对稳健组也有效(涨67%/下界64%/edge+10%)、且与 RSI 几乎不重叠(仅11%)——是纯增量机会(捕获"深度回调但RSI未到25"的漏网)。RSI 优先。**100日布林由此成为稳健组+动量软件股通用的"大级别支撑"信号。**
 - **v21（2026-07-21）**：**Tier2 标的级微调**——动量组内按标的性格再分三档(数据显示同一"破下轨"信号在标的间天差地别)：**趋势回调组**(半导体/AI硬件/电力 8只 NVDA/AVGO/MU/AMD/GEV/CEG/LEU/VST)破日线下轨且价ma200上；**大级别支撑组**(SNOW/TSLA/BABA)破 100日布林下轨(≈20周级支撑，涨71-74%/下界57-60%；日线20布林对它们无效)；**无信号组**(NET/COIN，连大级别支撑都失效、涨48-49%)。稳健组不变。用户直觉(更大级别支撑/周布林)带出 SNOW/TSLA/BABA 的救法。

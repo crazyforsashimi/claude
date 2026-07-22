@@ -138,6 +138,7 @@
 </div>
 
 <script src="config.js"></script>
+<script src="ticker_stats.js"></script>
 <script>
 /* ============================================================
    配置
@@ -488,9 +489,9 @@ function classifyPct(v){ if(v==null)return""; return v>=80?"p-red":v<=20?"p-gree
      · 无信号(NET/COIN)：连大级别支撑都失效(涨48-49%)，暂无可靠买入信号。
    卖出(仅稳健组)：PE五年分位>95 且 RSI>70，金融股极准(GS76%/MS74%/JPM78%)，止盈参考、非做空。
    KDJ/MACD 实测独立 edge≈0，不进大机会信号(仅参与「看法」投票)。 */
-/* 每标的-每信号的历史回溯[N,上涨率%]（build_ticker_stats.py 生成；数据刷新后重跑更新）。
+/* 每标的-每信号的历史回溯[N,上涨率%]——来自外部 ticker_stats.js(build_ticker_stats.py 生成，每月定时 Action 自动更新)。
    在分组率之外额外显示个股率——N 小(甚至=1)也保留：它本身说明该信号在这只票上极罕见=极端，可靠性由 N 自证。 */
-const TICKER_STATS = {"AAPL":{"rsi20":[1,100],"rsi25":[9,78],"b100":[44,55]},"MSFT":{"rsi20":[0,null],"rsi25":[4,100],"b100":[75,47]},"GOOGL":{"rsi20":[0,null],"rsi25":[2,100],"b100":[63,63]},"AMZN":{"rsi20":[2,100],"rsi25":[20,100],"b100":[64,80]},"NVDA":{"dip":[20,90]},"META":{"rsi20":[0,null],"rsi25":[9,100],"b100":[36,94]},"TSLA":{"b100":[47,74]},"MCD":{"rsi20":[5,100],"rsi25":[19,95],"b100":[72,61]},"TSM":{"rsi20":[2,0],"rsi25":[6,33],"b100":[55,51]},"JPM":{"rsi20":[0,null],"rsi25":[4,50],"b100":[38,79]},"CEG":{"dip":[27,67]},"AVGO":{"dip":[24,92]},"BRK-B":{"rsi20":[0,null],"rsi25":[7,57],"b100":[22,73]},"LEU":{"dip":[16,69]},"LLY":{"rsi20":[1,100],"rsi25":[6,100],"b100":[30,90]},"AMD":{"dip":[17,76]},"MU":{"dip":[21,76]},"QCOM":{"rsi20":[0,null],"rsi25":[8,88],"b100":[51,55]},"SNOW":{"b100":[37,73]},"VST":{"dip":[23,61]},"NEE":{"rsi20":[13,92],"rsi25":[22,77],"b100":[52,67]},"GEV":{"dip":[10,100]},"CAT":{"rsi20":[1,100],"rsi25":[4,100],"b100":[34,76]},"BABA":{"b100":[45,71]},"GS":{"rsi20":[0,null],"rsi25":[2,100],"b100":[46,80]},"MS":{"rsi20":[0,null],"rsi25":[0,null],"b100":[40,68]},"SOXX":{"rsi20":[0,null],"rsi25":[2,100],"b100":[54,59]},"QQQ":{"rsi20":[0,null],"rsi25":[5,80],"b100":[55,75]},"SPY":{"rsi20":[0,null],"rsi25":[4,100],"b100":[62,73]}};
+const TICKER_STATS = (typeof window!=="undefined" && window.TICKER_STATS) || {};
 function tickerStat(tk,key){const s=TICKER_STATS[tk]&&TICKER_STATS[tk][key];if(!s||s[0]===0)return"本标的历史 0 次(极罕见)";return `本标的历史 ${s[0]} 次·涨${s[1]}%`;}
 const HI_VOL = new Set(["LEU","COIN","NET","SNOW","TSLA","AMD","GEV","MU","NVDA","BABA","CEG","VST","AVGO"]);
 const MOM_DIP = new Set(["NVDA","AVGO","MU","AMD","GEV","CEG","LEU","VST"]);   // 破日线下轨+ma200顺势

@@ -17,6 +17,7 @@ PE分位说明（避免误用造成前视偏差 look-ahead bias）：
   - pe_percentile_full_sample：用全部5年样本计算的分位（与 index.html 实时工具口径一致，
     但对样本早期的行而言用到了"未来"数据）—— 仅用于核对/展示，不要用作训练特征。
 """
+import os
 import re
 import sys
 import time
@@ -49,6 +50,9 @@ STALE_DAYS = 200   # 财报陈旧度上限(交易日距所用财报的公布日)
 
 
 def load_api_key() -> str:
+    k = os.environ.get("MASSIVE_API_KEY")     # 云端 Action 用 Secrets；本地 fallback config.js
+    if k:
+        return k
     text = CONFIG_JS.read_text(encoding="utf-8")
     m = re.search(r'MASSIVE_API_KEY\s*=\s*"([^"]+)"', text)
     if not m:
