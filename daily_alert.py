@@ -14,6 +14,7 @@
 """
 import os
 import sys
+import time
 
 import pandas as pd
 
@@ -54,15 +55,28 @@ def get_key() -> str:
 
 
 def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
-    bars = bd.fetch_daily_bars(tk, key, s, e)
-    if bars.empty:
-        return None
-    splits = [] if is_etf else bd.fetch_splits(tk, key)
+    # 日线(买入信号核心，仅 2 个请求)：加重试，尽量拿到
+    for attempt in range(3):
+        try:
+            bars = bd.fetch_daily_bars(tk, key, s, e)
+            if bars.empty:
+                return None
+            splits = [] if is_etf else bd.fetch_splits(tk, key)
+            break
+        except Exception:
+            if attempt < 2:
+                time.sleep(2 * (attempt + 1))
+                continue
+            raise
     bars = bd.drop_unreliable_price_regime(tk, bars, splits)
     df = bd.add_technical_indicators(bars)
+    # 财报(仅卖出信号用 PE 分位，请求多、是限速主因)：失败就跳过，绝不拖累买入信号
     if not is_etf:
-        fdf = bd.build_fundamentals_daily(bd.fetch_quarterly_financials(tk, key), splits)
-        df = bd.add_fundamentals(df, fdf)
+        try:
+            fdf = bd.build_fundamentals_daily(bd.fetch_quarterly_financials(tk, key), splits)
+            df = bd.add_fundamentals(df, fdf)
+        except Exception:
+            df = bd.add_fundamentals(df, pd.DataFrame())   # PE 列 NaN → 卖出不触发，买入照常
     else:
         df = bd.add_fundamentals(df, pd.DataFrame())
     last = df.iloc[-1]
@@ -153,6 +167,7 @@ def main():
     asof = None
     n_fail = 0
     for tk, is_etf in bd.UNIVERSE:
+        time.sleep(0.4)                  # 标的间降频，避免瞬时触发限速
         try:
             m = latest_metrics(tk, is_etf, key, s, e)
         except Exception as ex:
