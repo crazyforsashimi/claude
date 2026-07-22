@@ -383,7 +383,7 @@ def main():
 
     failed = []
     for ticker, is_etf in UNIVERSE:
-        for attempt in range(3):                       # 每标的失败重试(云端网络抖动/偶发限速)
+        for attempt in range(5):                       # 每标的失败重试(云端共享IP易被限速)
             try:
                 bars = fetch_daily_bars(ticker, api_key, start_s, end_s)
                 if bars.empty:
@@ -401,12 +401,12 @@ def main():
                 print(f"[完成] {ticker}: {len(df)} 行 x {len(df.columns)} 列")
                 break
             except Exception as e:
-                if attempt < 2:
-                    time.sleep(3 * (attempt + 1))       # 退避 3s / 6s 再试
+                if attempt < 4:
+                    time.sleep(min(30, 5 * 2 ** attempt))   # 指数退避 5/10/20/30/30s，等限速窗口过去
                     continue
                 print(f"[失败] {ticker}: {e}")
                 failed.append(ticker)
-        time.sleep(0.15)
+        time.sleep(1.5)                                 # 标的间降频，避免触发瞬时限速
 
     if failed:
         print(f"\n⚠️ {len(failed)} 个标的失败: {failed}")

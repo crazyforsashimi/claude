@@ -149,13 +149,16 @@ def main():
 
     strong_buy, buy, sell = [], [], []
     asof = None
+    n_fail = 0
     for tk, is_etf in bd.UNIVERSE:
         try:
             m = latest_metrics(tk, is_etf, key, s, e)
         except Exception as ex:
             print(f"[跳过] {tk}: {ex}")
+            n_fail += 1
             continue
         if not m or m["rsi"] is None:
+            n_fail += 1
             continue
         asof, rsi, pe = m["date"], m["rsi"], m["pe_pctile"]
         name = NAMES.get(tk, "")
@@ -177,8 +180,13 @@ def main():
             if pe is not None and pe > 95 and rsi > 70:   # 卖出仅稳健组
                 sell.append((tk, name, f"PE分位 {pe:.0f}·RSI(14) {rsi:.1f}"))
 
+    if n_fail > 3:   # 拉取失败过多(可能云端限速)：明确告警，绝不静默漏报
+        warn = f"本次 {n_fail}/{len(bd.UNIVERSE)} 个标的数据拉取失败(疑似限速)，未完整检测、可能漏报信号，请留意。"
+        notify("⚠️ 大机会告警·数据不全", warn, f'<div style="font-family:sans-serif;padding:12px;color:#b7791f">{warn}</div>')
+        print("⚠️ " + warn)
+
     if not (strong_buy or buy or sell):
-        print(f"数据截至 {asof}：今日无大机会信号，不推送。")
+        print(f"数据截至 {asof}：今日无大机会信号（失败 {n_fail} 只），不推送。")
         return
 
     groups = [(k, v) for k, v in [("strong", strong_buy), ("buy", buy), ("sell", sell)] if v]
