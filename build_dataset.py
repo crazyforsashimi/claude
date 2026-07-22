@@ -383,34 +383,38 @@ def main():
 
     failed = []
     for ticker, is_etf in UNIVERSE:
-        try:
-            bars = fetch_daily_bars(ticker, api_key, start_s, end_s)
-            if bars.empty:
-                print(f"[跳过] {ticker}: 无价格数据")
+        for attempt in range(3):                       # 每标的失败重试(云端网络抖动/偶发限速)
+            try:
+                bars = fetch_daily_bars(ticker, api_key, start_s, end_s)
+                if bars.empty:
+                    raise RuntimeError("无价格数据")
+                splits = [] if is_etf else fetch_splits(ticker, api_key)
+                bars = drop_unreliable_price_regime(ticker, bars, splits)
+                df = add_technical_indicators(bars)
+                if not is_etf:
+                    fdf = build_fundamentals_daily(fetch_quarterly_financials(ticker, api_key), splits)
+                    df = add_fundamentals(df, fdf)
+                else:
+                    df = add_fundamentals(df, pd.DataFrame())
+                out_path = OUT_DIR / f"{ticker.replace('.', '-')}.csv"
+                df.to_csv(out_path, index=False)
+                print(f"[完成] {ticker}: {len(df)} 行 x {len(df.columns)} 列")
+                break
+            except Exception as e:
+                if attempt < 2:
+                    time.sleep(3 * (attempt + 1))       # 退避 3s / 6s 再试
+                    continue
+                print(f"[失败] {ticker}: {e}")
                 failed.append(ticker)
-                continue
+        time.sleep(0.15)
 
-            splits = [] if is_etf else fetch_splits(ticker, api_key)
-            bars = drop_unreliable_price_regime(ticker, bars, splits)
-            df = add_technical_indicators(bars)
-
-            if not is_etf:
-                financials = fetch_quarterly_financials(ticker, api_key)
-                fdf = build_fundamentals_daily(financials, splits)
-                df = add_fundamentals(df, fdf)
-            else:
-                df = add_fundamentals(df, pd.DataFrame())
-
-            safe_name = ticker.replace(".", "-")
-            out_path = OUT_DIR / f"{safe_name}.csv"
-            df.to_csv(out_path, index=False)
-            print(f"[完成] {ticker}: {len(df)} 行 x {len(df.columns)} 列 -> {out_path.name}")
-        except Exception as e:
-            print(f"[失败] {ticker}: {e}")
-            failed.append(ticker)
-        time.sleep(0.1)
-
-    print("\n全部完成。" if not failed else f"\n完成，但以下标的失败: {failed}")
+    if failed:
+        print(f"\n⚠️ {len(failed)} 个标的失败: {failed}")
+        # 失败过多说明数据不完整——直接失败退出，绝不让残缺数据生成部分 CSV/表覆盖好数据
+        if len(failed) > 3:
+            sys.exit(f"❌ 失败标的过多({len(failed)}/{len(UNIVERSE)})，数据不完整，中止")
+    else:
+        print("\n全部完成。")
 
 
 if __name__ == "__main__":

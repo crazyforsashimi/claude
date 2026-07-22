@@ -60,6 +60,9 @@ def main():
         if e:
             out[tk] = e
 
+    if len(out) < 25:   # 正常应 29 个标的；不足说明上游数据残缺，拒绝写表以免覆盖好数据
+        raise SystemExit(f"❌ 只有 {len(out)} 个标的的统计，数据不完整，中止(不写 ticker_stats.js)")
+
     (ROOT / "output").mkdir(exist_ok=True)
     (ROOT / "output" / "ticker_stats.json").write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     compact = json.dumps(out, ensure_ascii=False, separators=(",", ":"))
