@@ -308,8 +308,11 @@ def add_fundamentals(df: pd.DataFrame, fdf: pd.DataFrame) -> pd.DataFrame:
         return df
 
     left = df.copy()
-    left["date_ts"] = pd.to_datetime(left["date"])
-    fdf = fdf.sort_values("known_date")
+    # 两个 merge key 强制统一为 datetime64[ns]：pandas 2.x 会给 .dt.date 对象与 to_datetime+Timedelta
+    # 推断出不同精度([s] vs [us])，merge_asof 严格校验会报 MergeError(1.5.3 只有[ns]故无此问题)
+    left["date_ts"] = pd.to_datetime(left["date"]).astype("datetime64[ns]")
+    fdf = fdf.sort_values("known_date").copy()
+    fdf["known_date"] = pd.to_datetime(fdf["known_date"]).astype("datetime64[ns]")
     merged = pd.merge_asof(left.sort_values("date_ts"), fdf, left_on="date_ts", right_on="known_date", direction="backward")
 
     # 财报陈旧度过滤：某交易日用的财报公布日距该日 > STALE_DAYS，说明中间有季度缺失(Polygon 常缺银行
