@@ -28,10 +28,11 @@ MOM_DIP = {"NVDA", "AVGO", "MU", "AMD", "GEV", "CEG", "LEU", "VST"}
 MOM_BIG = {"SNOW", "TSLA", "BABA"}
 
 def fmt_tstat(s):
-    """格式化实时算出的个股回溯 [N, 涨率%]。N 小(甚至=1)也保留：反映该信号在该股极罕见=极端。"""
+    """格式化实时算出的个股回溯 [N, 5日涨率%, 10日, 20日]。N 小(甚至=1)也保留：反映该信号在该股极罕见=极端。"""
     if not s or s[0] == 0:
         return "本标的0次(极罕见)"
-    return f"本标的{s[0]}次涨{s[1]}%"
+    n, r5, r10, r20 = s
+    return f"本标的{n}次·涨率 5日{r5}% / 10日{r10}% / 20日{r20}%"
 
 
 def detect_earnings_landmine(df, fin):
@@ -146,14 +147,17 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
     ma200 = last.get("ma200")
     c = df["close"]
     m100s, s100s = c.rolling(100).mean(), c.rolling(100).std()
-    # 实时算该标的历史个股率[N,涨率%]（用已拉的 5 年 df 当场算，永远最新、免维护）
-    up = df["fwd_ret_20d"] > 0
-    valid = df["fwd_ret_20d"].notna()
+    # 实时算该标的历史个股率[N, 5/10/20日涨率%]（用已拉的 5 年 df 当场算，永远最新、免维护）
+    # 同一批信号看不同持有期→看反弹节奏(如 GEV 破下轨:5日70%→10日40%探底→20日100%回正)
+    fwd = {h: c.shift(-h) / c - 1 for h in (5, 10, 20)}
+    valid = fwd[20].notna()                       # 同批：以能算满 20 日的信号为准
 
     def pstat(mask):
         mm = (mask & valid).fillna(False)
         n = int(mm.sum())
-        return [n, round(up[mm].mean() * 100)] if n else [0, None]
+        if not n:
+            return [0, None, None, None]
+        return [n] + [round((fwd[h][mm] > 0).mean() * 100) for h in (5, 10, 20)]
 
     tstats = {
         "rsi20": pstat(df["rsi14"] < 20),
@@ -247,11 +251,11 @@ def build_messages(asof, groups):
 def main():
     if os.environ.get("ALERT_TEST") == "true":   # 仅当手动勾选 test 框时：发样式预览，不做实际检测
         print("【测试模式】ALERT_TEST=true → 只发样式预览邮件，未做任何实际信号检测")
-        sample = [("strong", [("AAPL", "苹果", "RSI(14) 18.5｜本标的3次涨100%")]),
-                  ("buy", [("MSFT", "微软", "RSI(14) 23.1｜本标的12次涨86%"),
-                           ("GEV", "GE Vernova", "破布林下轨·价在MA200上｜本标的10次涨100%｜ℹ️财报数据仅到2026-04-22(91天前)，可能刚发新财报未入库，请核对是否财报暴雷"),
-                           ("MU", "美光", "RSI(14) 24.0｜本标的5次涨80%｜⚠️财报暴雷坑(距财报6天·当日-9%·历史62%,慎接飞刀)"),
-                           ("TSLA", "特斯拉", "破100日布林下轨(大支撑)｜本标的8次涨75%")]),
+        sample = [("strong", [("AAPL", "苹果", "RSI(14) 18.5｜本标的1次·涨率 5日100% / 10日100% / 20日100%")]),
+                  ("buy", [("MSFT", "微软", "RSI(14) 23.1｜本标的12次·涨率 5日75% / 10日83% / 20日86%"),
+                           ("GEV", "GE Vernova", "破布林下轨·价在MA200上｜本标的10次·涨率 5日70% / 10日40% / 20日100%｜ℹ️财报数据仅到2026-04-22(91天前)，可能刚发新财报未入库，请核对是否财报暴雷"),
+                           ("MU", "美光", "RSI(14) 24.0｜本标的5次·涨率 5日80% / 10日60% / 20日80%｜⚠️财报暴雷坑(距财报6天·当日-9%·历史62%,慎接飞刀)"),
+                           ("TSLA", "特斯拉", "破100日布林下轨(大支撑)｜本标的47次·涨率 5日60% / 10日81% / 20日74%")]),
                   ("sell", [("GS", "高盛", "PE分位 98·RSI(14) 73")])]
         md, html = build_messages("示例数据（这是测试预览，非真实信号）", sample)
         notify("⚡自选股机会信号提示 · 样式预览（测试）", md, html)
