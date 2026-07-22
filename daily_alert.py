@@ -122,26 +122,24 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
             raise
     bars = bd.drop_unreliable_price_regime(tk, bars, splits)
     df = bd.add_technical_indicators(bars)
-    # 财报(卖出信号用 PE 分位 + 事件闸门算"财报暴雷坑/数据滞后提示"，同一次请求)：
-    # 云端共享IP 常被限速→加一次轻量重试提高拉取率；仍失败则跳过(买入照常)、但不再静默、打印诊断
+    # 财报(卖出信号用 PE 分位 + 事件闸门算"财报暴雷坑/数据滞后提示"，同一次请求)：失败就跳过，绝不拖累买入信号
+    # 关键：限速常见"200+空results"(非抛异常)，空 list 必须视同请求失败(不重试、省 API)，否则会静默漏掉提示
     landmine, fin = None, None
     if not is_etf:
-        for attempt in range(2):
-            try:
-                fin = bd.fetch_quarterly_financials(tk, key)
-                break
-            except Exception:
-                if attempt == 0:
-                    time.sleep(1.5); continue
-        if fin is not None:
+        try:
+            fin = bd.fetch_quarterly_financials(tk, key)
+        except Exception:
+            fin = None
+        if fin:                                  # 非空才算真拿到；空/失败一律走下面的降级分支
             try:
                 df = bd.add_fundamentals(df, bd.build_fundamentals_daily(fin, splits))
                 landmine = detect_earnings_landmine(df, fin)   # 用同一批财报的 filing_date 判雷区/滞后
-            except Exception:
+            except Exception as ex:
                 df = bd.add_fundamentals(df, pd.DataFrame())
+                print(f"[财报处理异常] {tk}: {type(ex).__name__}: {ex}")
         else:
             df = bd.add_fundamentals(df, pd.DataFrame())       # PE 列 NaN → 卖出不触发，买入照常；landmine 留 None
-            print(f"[财报未拉到] {tk}: 疑似限速，本次无 PE 分位与事件闸门提示")
+            print(f"[财报未拉到] {tk}: 疑似限速(空结果/请求失败)，本次无 PE 分位与事件闸门提示")
     else:
         df = bd.add_fundamentals(df, pd.DataFrame())
     last = df.iloc[-1]
