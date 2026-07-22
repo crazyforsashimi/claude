@@ -165,7 +165,7 @@ let API_KEY = (((typeof window!=="undefined" && window.MASSIVE_API_KEY) || local
 const BASE = "https://api.polygon.io";
 const CONCURRENCY = 4;             // Starter 无限速，适度并发
 const FIN_TTL_DAYS = 20;           // 财报缓存天数（季度才变）
-const CACHE_KEY = "screener_cache_v3";   // v3: 5年分位加入拆股还原
+const CACHE_KEY = "screener_cache_v4";   // v4: 财报 quarters 加 filing_date(事件闸门用)，旧缓存无此字段需作废重拉
 
 /* 关注标的：代码 / 中文名 / 板块分组(行业均值) / ETF标记 /
    secEps+secEpsThru = SEC官方TTM摊薄EPS覆盖(仅用于 Polygon 漏收季报的巨头) */
