@@ -360,9 +360,6 @@ async function fetchTicker(u){
     rec.kdj=calcKDJ(hi,lo,cl);
     rec.boll=calcBOLL(cl);
     rec.ma=calcMA(cl);
-    const hi250=hi.slice(-250);                          // ≈52周(250交易日)
-    rec.hi52=hi250.length?Math.max(...hi250):null;
-    rec.distHi=(rec.hi52&&rec.price)?rec.price/rec.hi52-1:null;   // ≤0，越近0越贴顶
     rec.chg1d=cl.length>=2?cl[cl.length-1]/cl[cl.length-2]-1:null;          // 当日涨跌幅
     const ys=new Date(new Date().getFullYear(),0,1).getTime();             // 年初至今：今年首个交易日收盘
     let yb=null; for(const b of ab){ if(b.t>=ys){ yb=b.c; break; } }
@@ -457,7 +454,7 @@ async function refreshAll(){
 }
 
 /* ============================================================
-   派生列（行业均值PE） + 情绪
+   派生列：行业均值 PE（仅用于 peTTM 单元格的行业相对红绿着色）
    ============================================================ */
 function compute(){
   ROWS=UNIVERSE.map(u=>{
@@ -466,7 +463,7 @@ function compute(){
       t:u.t, n:u.n, g:u.g, etf:!!u.etf,
       mktcap:d.mktcap??null, peTTM:d.peTTM??null,
       pct:d.pct??null, pctReason:d.pctReason,
-      rsi:d.rsi??null, macd:d.macd, kdj:d.kdj, boll:d.boll, ma:d.ma, price:d.price, distHi:d.distHi??null,
+      rsi:d.rsi??null, macd:d.macd, kdj:d.kdj, boll:d.boll, ma:d.ma, price:d.price,
       obvZ:d.obvZ??null, bullDiv:!!d.bullDiv, bearDiv:!!d.bearDiv, chg1d:d.chg1d??null, ytd:d.ytd??null, below100:!!d.below100,
       asof:d.asof, err:d.err, finStale:d.finStale, finAsof:d.finAsof, epsSrc:d.epsSrc, epsThru:d.epsThru,
     };
@@ -514,8 +511,9 @@ function detectLandmine(bars, quarters){
     if(ms<=lastMs && (!best||ms>best.ms)) best={ms, approx};
   }
   if(!best) return null;
-  const dse=Math.round((lastMs-best.ms)/864e5);
-  if(dse>15) return {landmine:false};                    // 近15天无财报→当前下跌与财报无关
+  const dse=Math.round((lastMs-best.ms)/864e5), latest=ymdMs(best.ms);
+  // >85天(≈一季)→下季可能已发未入库(Starter 无前瞻财报日历)，stale 供中性核对提示
+  if(dse>15) return {landmine:false, dse, latest_filing:latest, stale:dse>85};                    // 近15天无财报→当前下跌与财报无关
   let worst=null;                                         // 财报日附近[-4,+6日历日]最差单日收益
   for(let i=1;i<bars.length;i++){
     if(bars[i].t>=best.ms-4*864e5 && bars[i].t<=best.ms+6*864e5){
@@ -524,16 +522,22 @@ function detectLandmine(bars, quarters){
     }
   }
   if(worst==null) return null;
-  return {landmine: worst<-0.06, worst, dse, approx:best.approx};
+  return {landmine: worst<-0.06, worst, dse, latest_filing:latest, approx:best.approx, stale:false};
 }
 
 /* signalOf = 核心信号(signalCore) + 事件闸门标注：买入信号若踩财报暴雷坑，txt 加⚠️、tip 详述。 */
 function signalOf(r){
   const sig=signalCore(r);
-  if(sig && sig.type==="buy" && r.landmine && r.landmine.landmine){
-    const lm=r.landmine, sfx=lm.approx?"近似":"";
-    sig.txt+=" ⚠️";
-    sig.tip+=`｜⚠️财报暴雷坑${sfx}（距财报${lm.dse}天·财报日当日${Math.round(lm.worst*100)}%；此类抄底历史仅涨62%/下界52%，明显差于常态71%，慎接飞刀）`;
+  const lm=r.landmine;
+  if(sig && sig.type==="buy" && lm){
+    if(lm.landmine){                    // ① 真雷区：财报大阴线砸的坑
+      const sfx=lm.approx?"近似":"";
+      sig.txt+=" ⚠️";
+      sig.tip+=`｜⚠️财报暴雷坑${sfx}（距财报${lm.dse}天·财报日当日${Math.round(lm.worst*100)}%；此类抄底历史仅涨62%/下界52%，明显差于常态71%，慎接飞刀）`;
+    } else if(lm.stale){                 // ② 财报数据可能滞后一季：中性核对提示，不改判断、不误伤
+      sig.txt+=" ℹ️";
+      sig.tip+=`｜ℹ️财报数据仅到${lm.latest_filing}（${lm.dse}天前）；该标的可能刚发新财报尚未入库（前瞻财报日历数据源不提供），请自行核对是否财报暴雷再决定`;
+    }
   }
   return sig;
 }

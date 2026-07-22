@@ -58,23 +58,31 @@ def detect_earnings_landmine(df, fin):
     if not past:
         return None
     fd, approx = max(past, key=lambda x: x[0])       # 最近一次财报
-    if (last_date - fd).days > 15:                   # 近15天无财报→当前下跌与财报无关
-        return {"landmine": False}
+    dse, latest = int((last_date - fd).days), fd.date().isoformat()
+    if dse > 15:
+        # 近15天无财报→当前下跌与财报无关。但若距最近已知财报 >85天(≈一个季度)，说明下一季
+        # 财报可能已发布但数据源尚未入库(Starter 无前瞻财报日历)→ stale，供买入信号附中性核对提示
+        return {"landmine": False, "dse": dse, "latest_filing": latest, "stale": dse > 85}
     # 财报日附近[-1,+2 交易日]的最差单日收益(用日历窗口兜住周末/盘后发次日反应)
     win = d[(d["date"] >= fd - pd.Timedelta(days=4)) & (d["date"] <= fd + pd.Timedelta(days=6))]
     worst = win["ret1"].min()
     if pd.isna(worst):
         return None
     return {"landmine": bool(worst < -0.06), "worst": float(worst),
-            "dse": int((last_date - fd).days), "approx": approx}
+            "dse": dse, "latest_filing": latest, "approx": approx, "stale": False}
 
 
 def landmine_tag(m):
-    """买入信号的财报暴雷坑标注：只在真雷区(财报大阴线)亮红旗，温和回落/远离财报不误伤。"""
+    """买入信号的财报事件标注：
+    ①真雷区(财报大阴线)→红旗⚠️；②财报数据可能滞后一季(stale)→中性核对提示ℹ️(不改判断、不误伤)。"""
     lm = m.get("landmine")
-    if lm and lm.get("landmine"):
+    if not lm:
+        return ""
+    if lm.get("landmine"):
         sfx = "近似" if lm.get("approx") else ""
         return f"｜⚠️财报暴雷坑{sfx}(距财报{lm['dse']}天·当日{lm['worst']*100:.0f}%·历史62%,慎接飞刀)"
+    if lm.get("stale"):    # 前瞻财报日历数据源不给，只能提醒：可能刚发财报未入库，请自行核对
+        return f"｜ℹ️财报数据仅到{lm['latest_filing']}({lm['dse']}天前)，该标的可能刚发新财报尚未入库，请核对是否财报暴雷再决定"
     return ""
 NAMES = {
     "AAPL": "苹果", "MSFT": "微软", "GOOGL": "谷歌", "AMZN": "亚马逊", "NVDA": "英伟达",
