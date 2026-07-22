@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>大机会逻辑总结 · 分组信号 + 事件闸门</title>
+<style>
+  :root{
+    --bg:#eef1f4; --card:#ffffff; --ink:#1a1d21; --muted:#69707a; --line:#e4e8ec;
+    --buy:#12924f; --buy-bg:#e7f4ec; --buy-line:#bfe3cd;
+    --sell:#b7791f; --sell-bg:#fbf1de; --sell-line:#ecd5a8;
+    --dead:#9aa1ab; --chip:#f1f3f6; --accent:#2f6f4e;
+    --warn:#c0392b; --warn-bg:#fbecea; --warn-line:#f0cfc9;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0d1015; --card:#161a20; --ink:#e6e9ee; --muted:#8b93a0; --line:#252b33;
+      --buy:#43d18f; --buy-bg:#10281e; --buy-line:#1f4634;
+      --sell:#e0a53f; --sell-bg:#2e2412; --sell-line:#4a3a1a;
+      --dead:#6a7280; --chip:#1d222a; --accent:#57c48c;
+      --warn:#f0736a; --warn-bg:#2c1614; --warn-line:#4a201c;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#eef1f4; --card:#ffffff; --ink:#1a1d21; --muted:#69707a; --line:#e4e8ec;
+    --buy:#12924f; --buy-bg:#e7f4ec; --buy-line:#bfe3cd; --sell:#b7791f; --sell-bg:#fbf1de;
+    --sell-line:#ecd5a8; --dead:#9aa1ab; --chip:#f1f3f6; --accent:#2f6f4e;
+    --warn:#c0392b; --warn-bg:#fbecea; --warn-line:#f0cfc9;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d1015; --card:#161a20; --ink:#e6e9ee; --muted:#8b93a0; --line:#252b33;
+    --buy:#43d18f; --buy-bg:#10281e; --buy-line:#1f4634; --sell:#e0a53f; --sell-bg:#2e2412;
+    --sell-line:#4a3a1a; --dead:#6a7280; --chip:#1d222a; --accent:#57c48c;
+    --warn:#f0736a; --warn-bg:#2c1614; --warn-line:#4a201c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.5}
+  .wrap{max-width:820px;margin:0 auto;padding:44px 22px 72px}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 10px}
+  h1{font-size:27px;font-weight:750;margin:0 0 12px;letter-spacing:.2px;text-wrap:balance}
+  .lede{font-size:15px;color:var(--muted);margin:0 0 12px;max-width:66ch}
+  .split{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+    font-size:13px;color:var(--muted);margin:22px 0 26px;line-height:1.65}
+  .split b{color:var(--ink)}
+  .split .names{font-variant-numeric:tabular-nums;letter-spacing:.2px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 18px;margin-bottom:18px}
+  .card > header{display:flex;flex-direction:column;gap:3px;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px}
+  .card h2{font-size:17px;font-weight:700;margin:0}
+  .card .sub{font-size:12.5px;color:var(--muted)}
+  .rules{display:flex;flex-direction:column;gap:0}
+  .rule{display:flex;flex-direction:column;gap:6px;padding:12px 0}
+  .rule + .rule{border-top:1px solid var(--line)}
+  .rule .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tag{display:inline-block;padding:2px 9px;border-radius:6px;font-size:12px;font-weight:700;white-space:nowrap;color:#fff}
+  .tag.buy{background:var(--buy)}
+  .tag.buy-strong{background:var(--buy);box-shadow:0 1px 4px rgba(0,0,0,.18)}
+  .tag.sell{background:var(--sell)}
+  .tag.none{background:var(--dead)}
+  .tag.warn{background:var(--warn)}
+  .cond{font-size:13.5px;font-weight:600;color:var(--ink)}
+  .stats{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .stats b{color:var(--ink);font-weight:700}
+  .note{font-size:12px;color:var(--muted);background:var(--chip);border-radius:8px;padding:9px 11px;line-height:1.55}
+  .note.warn{background:var(--warn-bg);border:1px solid var(--warn-line)}
+  .tiers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  @media(max-width:660px){.tiers{grid-template-columns:1fr}}
+  .tier{border:1px solid var(--line);border-radius:11px;padding:14px;display:flex;flex-direction:column;gap:7px}
+  .tier.dead{border-style:dashed;opacity:.85}
+  .tier .who{font-size:11.5px;color:var(--muted);line-height:1.5}
+  .tier .tsig{font-size:12.5px;color:var(--ink);font-weight:600;margin-top:2px}
+  .tier .tstat{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  /* 闸门数据表 */
+  .gate{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;margin:2px 0 4px}
+  .gate th,.gate td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  .gate th{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .gate td b{color:var(--ink)}
+  .gate tr.bad td{color:var(--warn)}
+  .gate tr.bad td b{color:var(--warn)}
+  .verdict{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+  .vrow{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.55}
+  .vmark{flex:0 0 auto;font-weight:700}
+  .vmark.no{color:var(--warn)}
+  .vmark.yes{color:var(--buy)}
+  .vrow b{color:var(--ink)}
+  .excluded{margin-top:8px;background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:16px 18px}
+  .excluded h3{font-size:14px;margin:0 0 6px;color:var(--ink)}
+  .excluded p{font-size:13px;color:var(--muted);margin:0;line-height:1.6}
+  .foot{margin-top:26px;border-top:1px solid var(--line);padding-top:16px;font-size:12px;color:var(--muted);line-height:1.7}
+  .foot b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">大机会提示逻辑</p>
+  <h1>分组信号系统 · Tier1 + Tier2 + 事件闸门</h1>
+  <p class="lede">三层结构:<b style="color:var(--ink)">Tier1</b> 按波动率把标的分成稳健/动量两组(赚钱机制不同——均值回归 vs 趋势跟随);<b style="color:var(--ink)">Tier2</b> 再在动量组内按标的性格分三档,因为同一个"破下轨"信号在不同标的上<b style="color:var(--ink)">天差地别</b>(NVDA 破下轨后涨 90%,NET 破下轨后跌 6.6%);<b style="color:var(--ink)">事件闸门</b>再给所有买入信号叠一层过滤,避开财报暴雷砸的坑。每条规则都由 edge_scanner 对 31 标的近 5 年回溯选出。</p>
+
+  <div class="split">
+    <b>分组维度:年化波动率 40%</b>　·　稳健组 18 支(含 ETF)　·　动量组 13 支<br>
+    <span class="names">动量组(HI_VOL):LEU · COIN · NET · SNOW · TSLA · AMD · GEV · MU · NVDA · BABA · CEG · VST · AVGO</span>
+  </div>
+
+  <!-- 稳健组 -->
+  <section class="card">
+    <header>
+      <h2>🛡️ 稳健组 · 均值回归</h2>
+      <span class="sub">非 HI_VOL · 18 支 · AAPL/微软/金融/BRK/麦当劳…　超卖必反弹</span>
+    </header>
+    <div class="rules">
+      <div class="rule">
+        <div class="top"><span class="tag buy-strong">强买入 ★</span><span class="cond">RSI(14) &lt; 20</span></div>
+        <div class="stats"><span>涨 <b>88%</b></span><span>保守下界 <b>70%</b></span><span>盈亏比 <b>3.3</b></span></div>
+      </div>
+      <div class="rule">
+        <div class="top"><span class="tag buy">买入</span><span class="cond">RSI(14) &lt; 25　<span style="color:var(--muted);font-weight:500">或</span>　破 100 日布林下轨</span></div>
+        <div class="stats"><span>RSI 路径 涨 <b>86%</b> / 下界 <b>79%</b> / 盈亏比 <b>10.2</b></span><span>大支撑路径 涨 <b>67%</b> / 下界 <b>64%</b></span></div>
+        <div class="note">RSI 优先;破 100 日布林补"深度回调但 RSI 还没到 25"的机会——两信号几乎不重叠(仅 11%)、是纯增量。<b>100 日布林是稳健组 + 动量软件股通用的大级别支撑。</b></div>
+      </div>
+      <div class="rule">
+        <div class="top"><span class="tag sell">卖出</span><span class="cond">PE五年分位 &gt; 95 且 RSI(14) &gt; 70</span></div>
+        <div class="stats"><span>金融股极准 <b>GS 76% / MS 74% / JPM 78%</b></span></div>
+        <div class="note">高估值 + 超买。仅供止盈参考,<b>不代表做空</b>(做空超买仍是负期望)。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 动量组 三档 -->
+  <section class="card">
+    <header>
+      <h2>🚀 动量组 · 趋势跟随(Tier2 三档)</h2>
+      <span class="sub">HI_VOL · 13 支 · 同一"破下轨"信号 edge 天差地别 → 按标的性格再分档</span>
+    </header>
+    <div class="tiers">
+      <div class="tier">
+        <div class="top"><span class="tag buy">趋势回调组</span></div>
+        <div class="who">半导体 / AI 硬件 / 电力(8)<br>NVDA · AVGO · MU · AMD · GEV · CEG · LEU · VST</div>
+        <div class="tsig">破日线布林下轨 且 价在 MA200 上</div>
+        <div class="tstat">涨 65% · 下界 59% · 盈亏比 2.2</div>
+        <div class="note">强趋势中的回踩买点。裸破下轨无用,必须叠 MA200 顺势过滤。</div>
+      </div>
+      <div class="tier">
+        <div class="top"><span class="tag buy">大级别支撑组</span></div>
+        <div class="who">高波动软件 / 中概(3)<br>SNOW · TSLA · BABA</div>
+        <div class="tsig">破 100 日布林下轨(≈20 周级大支撑)</div>
+        <div class="tstat">涨 71-74% · 下界 57-60%</div>
+        <div class="note">日线 20 布林对它们无效,但更大级别的支撑才"够重"、真反弹。</div>
+      </div>
+      <div class="tier dead">
+        <div class="top"><span class="tag none">无信号</span></div>
+        <div class="who">软件 / 加密(2)<br>NET · COIN</div>
+        <div class="tsig">— 暂不提示</div>
+        <div class="tstat">连大级别支撑都失效(涨 48-49%)</div>
+        <div class="note">技术上没有验证过的可靠抄底点,诚实留空、不硬凑信号。</div>
+      </div>
+    </div>
+    <div class="note" style="margin-top:12px">动量组不设「强买入★」(极端超卖太罕见、样本不足),也不出「卖出」(超买后倾向继续涨,择顶=负期望)。</div>
+  </section>
+
+  <!-- 事件闸门 -->
+  <section class="card">
+    <header>
+      <h2>🎯 事件闸门 · 财报暴雷坑</h2>
+      <span class="sub">所有买入信号之上的过滤层 · 防"接财报雷的飞刀"(v26 新增)</span>
+    </header>
+    <p style="font-size:13.5px;margin:0 0 12px;line-height:1.6">
+      超卖抄底最经典的死法,是接一根<b>财报业绩暴雷砸出来的阴线</b>:好公司某季 miss、股价崩、RSI 瞬间超卖触发买入,但趋势已坏、继续跌。
+      事件闸门专门识别这种坑——<b>关键是「因果」不是「时间近似」</b>。
+    </p>
+    <table class="gate">
+      <thead><tr><th>触发买入的这次下跌来源</th><th>20日涨率</th><th>保守下界</th><th>平均收益</th></tr></thead>
+      <tbody>
+        <tr class="bad"><td><b>⚠️ 财报暴雷砸的坑</b>(财报日大阴线&lt;−6%)</td><td><b>62%</b></td><td><b>52%</b></td><td>+3.3%</td></tr>
+        <tr><td>财报附近但温和回落(−6%~0)</td><td><b>71%</b></td><td>59%</td><td>+7.1%</td></tr>
+        <tr><td>远离财报(&gt;30 天)</td><td><b>71%</b></td><td>68%</td><td>+5.6%</td></tr>
+      </tbody>
+    </table>
+    <div class="note" style="margin-bottom:12px">
+      买入信号总样本 N=1213、基准涨 70%。<b>注意第 2、3 行几乎一样</b>:离财报近但只是温和回落(71%),和远离财报(71%)一样好——<b>有毒的只有财报当天/次日大阴线砸出的坑(62%,下界仅 52%)</b>。所以闸门只在真雷区亮红旗,温和回落/远离财报不误伤。
+    </div>
+    <div class="rule" style="padding-top:0">
+      <div class="top"><span class="tag warn">⚠️ 财报暴雷坑</span><span class="cond">近 15 天有财报日 且 财报当日/次日单日 &lt; −6%</span></div>
+      <div class="note warn">买入信号照常触发,但标注 <b>⚠️「财报暴雷坑(距财报X天·当日−X%·历史62%,慎接飞刀)」</b>——由你自行判断这是错杀还是真雷。不硬拦,只提示。</div>
+    </div>
+  </section>
+
+  <!-- 三闸门实测:为什么只留事件闸门 -->
+  <section class="card">
+    <header>
+      <h2>🧪 为什么只留事件闸门</h2>
+      <span class="sub">Regime / 质量 / 事件 三个专业量化闸门,先回测再决定——数据否掉了两个</span>
+    </header>
+    <div class="verdict">
+      <div class="vrow"><span class="vmark no">✗ Regime 过滤</span><span>大盘 SPY vs 200 线:<b>反向</b>——熊市抄底 <b>73%</b> 反而高于牛市抄底 <b>65%</b>。超卖信号在熊市更接近真底、均值回归更强,加"只在牛市买"会滤掉更好的机会。<b>不加。</b></span></div>
+      <div class="vrow"><span class="vmark no">✗ 质量闸门</span><span>ROE / 杠杆:<b>无区分度</b>——ROE 健康(&gt;12%)涨 72% vs ROE 低涨 71%,几乎无差。池子是 31 只<b>精选优质大盘股</b>,天然没有价值陷阱可过滤。<b>不加。</b></span></div>
+      <div class="vrow"><span class="vmark yes">✓ 事件闸门</span><span>财报暴雷坑:<b>唯一有效</b>——真雷区 62% vs 常态 71%,差 9-12 个百分点。<b>已落地。</b></span></div>
+    </div>
+    <div class="note" style="margin-top:14px">
+      <b>认知:</b>这些通用闸门是为"全市场、含垃圾股、跨牛熊"设计的。而我们的池子是精选优质大盘股——<b>已经天然过滤了低质量标的</b>,且超卖信号跨 regime 都有效,所以通用闸门在这个特定池子上失效。<b>先测再落地,省掉两层没用的复杂度。</b>
+    </div>
+  </section>
+
+  <div class="excluded">
+    <h3>为什么 KDJ / MACD 没进大机会信号</h3>
+    <p>回测过 KDJ 超卖/金叉、MACD 金叉/零轴下金叉/底背离——两组的独立 edge 都在 ±2% 内,没有可交易价值。它们只保留在工具的「看法」列做粗略投票(那本就不追求 edge)。量价配合、背离作为独立方向信号 edge 也弱,同样未纳入。</p>
+  </div>
+
+  <div class="foot">
+    <b>数据来源</b>　<code>edge_scanner.py</code> 对 31 标的近 5 年日线分组回溯,按 <b>Wilson 95% 置信下界</b>排序、剔除小样本假信号(涨=触发后 20 日上涨概率;盈亏比取三重障碍口径)。RSI 为日线 14 周期(Wilder 平滑)。<br>
+    <b>事件闸门数据源</b>　财报公布日取 <code>/vX/reference/financials</code> 的 <code>filing_date</code>——季报(10-Q)精确,年报季(10-K)常缺 → 用 <code>end_date+50 天</code>近似(标"近似");单日跌幅用日线现算、100% 可靠。云端限速拉不到财报时标"财报日期未知"、不拦买入。<br>
+    <b>落地位置</b>　① 选股工具「机会」列(悬停看依据,踩坑标 ⚠️);② 每日邮件告警(每交易日盘中 3 次扫描,有触发才推,买入信号带 ⚠️ 财报暴雷坑标注)。工具 / 告警 / 回测三处口径完全一致。<br>
+    <b>方法论</b>　Tier1(横截面分组) + Tier2(组内按性格分档) + 事件闸门都靠数据回溯、非拍脑袋。更细的单标的阈值微调,因单只样本量太少、易过拟合,暂不深入。
+  </div>
+</div>
+</body>
+</html>

@@ -32,6 +32,50 @@ def fmt_tstat(s):
     if not s or s[0] == 0:
         return "本标的0次(极罕见)"
     return f"本标的{s[0]}次涨{s[1]}%"
+
+
+def detect_earnings_landmine(df, fin):
+    """判断"触发买入的这次下跌是不是财报暴雷砸的坑"。
+    回溯验证：近15天内有财报日 且 财报当日/次日出现大阴线(单日<-6%)的买入信号，20日涨率仅62%
+    (下界52%)，明显差于温和回落/远离财报的71%——是接飞刀。据此对买入信号打红旗。
+    返回 None=无财报数据(不判断)；{'landmine':bool,...}。财报日精确度：季报(10-Q)准，
+    年报季(10-K)filing_date 常缺→用 end_date+50天近似，标记 approx。"""
+    if not fin:
+        return None
+    ev = []                                          # (财报日, 是否近似)
+    for f in fin:
+        fd = f.get("filing_date") or (f.get("acceptance_datetime") or "")[:10]
+        approx = False
+        if not fd:
+            fd = (pd.Timestamp(f["end_date"]) + pd.Timedelta(days=50)).date().isoformat()
+            approx = True
+        ev.append((pd.Timestamp(fd), approx))
+    d = df.copy()
+    d["date"] = pd.to_datetime(d["date"])
+    d["ret1"] = d["close"].pct_change()
+    last_date = d["date"].iloc[-1]
+    past = [(fd, ap) for fd, ap in ev if fd <= last_date]
+    if not past:
+        return None
+    fd, approx = max(past, key=lambda x: x[0])       # 最近一次财报
+    if (last_date - fd).days > 15:                   # 近15天无财报→当前下跌与财报无关
+        return {"landmine": False}
+    # 财报日附近[-1,+2 交易日]的最差单日收益(用日历窗口兜住周末/盘后发次日反应)
+    win = d[(d["date"] >= fd - pd.Timedelta(days=4)) & (d["date"] <= fd + pd.Timedelta(days=6))]
+    worst = win["ret1"].min()
+    if pd.isna(worst):
+        return None
+    return {"landmine": bool(worst < -0.06), "worst": float(worst),
+            "dse": int((last_date - fd).days), "approx": approx}
+
+
+def landmine_tag(m):
+    """买入信号的财报暴雷坑标注：只在真雷区(财报大阴线)亮红旗，温和回落/远离财报不误伤。"""
+    lm = m.get("landmine")
+    if lm and lm.get("landmine"):
+        sfx = "近似" if lm.get("approx") else ""
+        return f"｜⚠️财报暴雷坑{sfx}(距财报{lm['dse']}天·当日{lm['worst']*100:.0f}%·历史62%,慎接飞刀)"
+    return ""
 NAMES = {
     "AAPL": "苹果", "MSFT": "微软", "GOOGL": "谷歌", "AMZN": "亚马逊", "NVDA": "英伟达",
     "META": "Meta", "TSLA": "特斯拉", "MCD": "麦当劳", "TSM": "台积电", "JPM": "摩根大通",
@@ -70,13 +114,15 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
             raise
     bars = bd.drop_unreliable_price_regime(tk, bars, splits)
     df = bd.add_technical_indicators(bars)
-    # 财报(仅卖出信号用 PE 分位，请求多、是限速主因)：失败就跳过，绝不拖累买入信号
+    # 财报(卖出信号用 PE 分位 + 事件闸门算"财报暴雷坑"，同一次请求)：失败就跳过，绝不拖累买入信号
+    landmine = None
     if not is_etf:
         try:
-            fdf = bd.build_fundamentals_daily(bd.fetch_quarterly_financials(tk, key), splits)
-            df = bd.add_fundamentals(df, fdf)
+            fin = bd.fetch_quarterly_financials(tk, key)
+            df = bd.add_fundamentals(df, bd.build_fundamentals_daily(fin, splits))
+            landmine = detect_earnings_landmine(df, fin)   # 用同一批财报的 filing_date 判雷区
         except Exception:
-            df = bd.add_fundamentals(df, pd.DataFrame())   # PE 列 NaN → 卖出不触发，买入照常
+            df = bd.add_fundamentals(df, pd.DataFrame())   # PE 列 NaN → 卖出不触发，买入照常；landmine 留 None(财报日未知)
     else:
         df = bd.add_fundamentals(df, pd.DataFrame())
     last = df.iloc[-1]
@@ -103,7 +149,7 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
             "pctB": last.get("boll_pctb"),
             "above_ma200": bool(pd.notna(ma200) and last["close"] > ma200),
             "below100": bool(pd.notna(m100s.iloc[-1]) and last["close"] <= m100s.iloc[-1] - 2 * s100s.iloc[-1]),
-            "tstats": tstats}
+            "tstats": tstats, "landmine": landmine}
 
 
 # 每组的标题/说明/主色(买入绿、卖出橙)
@@ -149,10 +195,12 @@ def build_messages(asof, groups):
 def main():
     if os.environ.get("ALERT_TEST") == "true":   # 仅当手动勾选 test 框时：发样式预览，不做实际检测
         print("【测试模式】ALERT_TEST=true → 只发样式预览邮件，未做任何实际信号检测")
-        sample = [("strong", [("AAPL", "苹果", "RSI(14) 18.5")]),
-                  ("buy", [("MSFT", "微软", "RSI(14) 23.1"), ("NVDA", "英伟达", "破布林下轨·价在MA200上"),
-                           ("TSLA", "特斯拉", "破100日布林下轨(大支撑)")]),
-                  ("sell", [("GS", "高盛", "PE分位 98 · RSI(14) 73")])]
+        sample = [("strong", [("AAPL", "苹果", "RSI(14) 18.5｜本标的3次涨100%")]),
+                  ("buy", [("MSFT", "微软", "RSI(14) 23.1｜本标的12次涨86%"),
+                           ("NVDA", "英伟达", "破布林下轨·价在MA200上｜本标的20次涨90%"),
+                           ("MU", "美光", "RSI(14) 24.0｜本标的5次涨80%｜⚠️财报暴雷坑(距财报6天·当日-9%·历史62%,慎接飞刀)"),
+                           ("TSLA", "特斯拉", "破100日布林下轨(大支撑)｜本标的8次涨75%")]),
+                  ("sell", [("GS", "高盛", "PE分位 98·RSI(14) 73")])]
         md, html = build_messages("示例数据（这是测试预览，非真实信号）", sample)
         notify("⚡股票大机会 · 样式预览（测试）", md, html)
         return
@@ -179,21 +227,22 @@ def main():
             continue
         asof, rsi, pe = m["date"], m["rsi"], m["pe_pctile"]
         name = NAMES.get(tk, "")
+        lm = landmine_tag(m)             # 事件闸门：这次下跌若是财报暴雷砸的，给买入信号挂红旗
         if tk in HI_VOL:                 # 动量组 Tier2 三档
             if tk in MOM_DIP:            # 趋势回调：破日线布林下轨 且 价在 MA200 上
                 if m["pctB"] is not None and m["pctB"] < 0 and m["above_ma200"]:
-                    buy.append((tk, name, f"破布林下轨·价在MA200上｜{fmt_tstat(m['tstats']['dip'])}"))
+                    buy.append((tk, name, f"破布林下轨·价在MA200上｜{fmt_tstat(m['tstats']['dip'])}{lm}"))
             elif tk in MOM_BIG:         # 大级别支撑：破 100 日布林下轨
                 if m["below100"]:
-                    buy.append((tk, name, f"破100日布林下轨(大支撑)｜{fmt_tstat(m['tstats']['b100'])}"))
+                    buy.append((tk, name, f"破100日布林下轨(大支撑)｜{fmt_tstat(m['tstats']['b100'])}{lm}"))
             # NET/COIN：无可靠信号，不触发
         else:                            # 稳健组：RSI(14) 超卖 或 破100日布林(大级别支撑)
             if rsi < 20:
-                strong_buy.append((tk, name, f"RSI(14) {rsi:.1f}｜{fmt_tstat(m['tstats']['rsi20'])}"))
+                strong_buy.append((tk, name, f"RSI(14) {rsi:.1f}｜{fmt_tstat(m['tstats']['rsi20'])}{lm}"))
             elif rsi < 25:
-                buy.append((tk, name, f"RSI(14) {rsi:.1f}｜{fmt_tstat(m['tstats']['rsi25'])}"))
+                buy.append((tk, name, f"RSI(14) {rsi:.1f}｜{fmt_tstat(m['tstats']['rsi25'])}{lm}"))
             elif m["below100"]:          # RSI 未触发但破100日布林下轨
-                buy.append((tk, name, f"破100日布林下轨(大支撑)｜{fmt_tstat(m['tstats']['b100'])}"))
+                buy.append((tk, name, f"破100日布林下轨(大支撑)｜{fmt_tstat(m['tstats']['b100'])}{lm}"))
             if pe is not None and pe > 95 and rsi > 70:   # 卖出仅稳健组
                 sell.append((tk, name, f"PE分位 {pe:.0f}·RSI(14) {rsi:.1f}"))
 

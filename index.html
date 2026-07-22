@@ -98,6 +98,7 @@
     <button class="primary" id="refresh" onclick="refreshAll()">↻ 刷新数据</button>
     <button onclick="clearCache()">清空缓存</button>
     <button onclick="showKeyGate()">🔑 API key</button>
+    <a href="logic.html" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:8px;text-decoration:none;color:var(--text);font:inherit;background:var(--card)">📖 逻辑文档</a>
     <span class="mut" id="ratenote" style="font-size:12px"></span>
   </div>
 
@@ -130,7 +131,7 @@
     <span>技术面数值悬停单元格看完整 K/D/J、DIF/DEA、上下轨、均线</span>
     <span><b style="color:var(--blue)">ˢ</b> = 已用 SEC 官方 EPS 修正（Polygon 漏收季报）</span>
     <span><b style="color:var(--amber)">*</b> = 数据源财报滞后（悬停看详情）</span>
-    <span><span class="pill sig-buy">买入</span>/<span class="pill sig-trim">减仓</span> = 回溯验证的大机会（悬停看依据）：买入 RSI&lt;25（&lt;20=强买入★）深度超卖；卖出 PE五年分位&gt;95 且 RSI&gt;70（高估值+超买，仅非高波动股，供参考非做空）</span>
+    <span><span class="pill sig-buy">买入</span>/<span class="pill sig-trim">减仓</span> = 回溯验证的大机会（悬停看依据）：买入 RSI&lt;25（&lt;20=强买入★）深度超卖；卖出 PE五年分位&gt;95 且 RSI&gt;70（高估值+超买，仅非高波动股，供参考非做空）。买入信号带 <b style="color:var(--red)">⚠️</b> = 踩<b>财报暴雷坑</b>(近15天财报日+当日大阴线)，慎接飞刀，<a href="logic.html" target="_blank" rel="noopener" style="color:var(--blue)">完整逻辑↗</a></span>
     <span><span class="view-tag view-bull">看多</span> / <span class="view-tag view-neutral">观望</span> / <span class="view-tag view-bear">看空</span> = 当日技术面 6 指标(均线/位置/MACD/RSI/KDJ/BOLL)投票综合，悬停看构成</span>
   </div>
 
@@ -307,7 +308,8 @@ async function getFinancials(T){
     const inc=r.financials?.income_statement; if(!inc) continue;
     const eps=inc.diluted_earnings_per_share?.value ?? null;
     const ni =inc.net_income_loss_attributable_to_parent?.value ?? inc.net_income_loss?.value ?? null;
-    qs.push([r.end_date, eps, ni]);
+    const fd =r.filing_date || (r.acceptance_datetime||"").slice(0,10) || null;   // 事件闸门用财报公布日
+    qs.push([r.end_date, eps, ni, fd]);
   }
   qs.sort((a,b)=> a[0]<b[0]?-1:1);
   let splits=[];
@@ -389,6 +391,7 @@ async function fetchTicker(u){
     try{
       const fin=await getFinancials(T);
       const q=fin.quarters;
+      rec.landmine=detectLandmine(ab, q);   // 事件闸门：这次下跌是不是财报暴雷砸的坑
       // 财报滞后检测：数据源最新季度过旧(>140天)→TTM 可能缺最新季度
       rec.finAsof = q.length? q[q.length-1][0] : null;
       rec.finStale = rec.finAsof ? ((Date.now()-Date.parse(rec.finAsof))/864e5 > 140) : false;
@@ -496,7 +499,45 @@ function tickerStat(tk,key){const s=TICKER_STATS[tk]&&TICKER_STATS[tk][key];if(!
 const HI_VOL = new Set(["LEU","COIN","NET","SNOW","TSLA","AMD","GEV","MU","NVDA","BABA","CEG","VST","AVGO"]);
 const MOM_DIP = new Set(["NVDA","AVGO","MU","AMD","GEV","CEG","LEU","VST"]);   // 破日线下轨+ma200顺势
 const MOM_BIG = new Set(["SNOW","TSLA","BABA"]);                              // 破100日布林(大级别支撑)
+/* 事件闸门：判断"触发买入的这次下跌是不是财报暴雷砸的坑"。与 daily_alert.py 同口径。
+   回溯：近15天内有财报日 且 财报当日/次日大阴线(单日<-6%)的买入信号，20日仅涨62%(下界52%)，
+   明显差于温和回落/远离财报的71%——是接飞刀。据此给买入信号打红旗。
+   财报日精度：季报(10-Q)准；年报季(10-K) filing_date 常缺→用 end_date+50天近似(标 approx)。 */
+function detectLandmine(bars, quarters){
+  if(!bars||!bars.length||!quarters||!quarters.length) return null;
+  const lastMs=bars[bars.length-1].t;
+  let best=null;
+  for(const q of quarters){
+    let fd=q[3], approx=false;
+    if(!fd){ fd=ymd(new Date(Date.parse(q[0])+50*864e5)); approx=true; }   // 缺 filing_date 兜底
+    const ms=Date.parse(fd);
+    if(ms<=lastMs && (!best||ms>best.ms)) best={ms, approx};
+  }
+  if(!best) return null;
+  const dse=Math.round((lastMs-best.ms)/864e5);
+  if(dse>15) return {landmine:false};                    // 近15天无财报→当前下跌与财报无关
+  let worst=null;                                         // 财报日附近[-4,+6日历日]最差单日收益
+  for(let i=1;i<bars.length;i++){
+    if(bars[i].t>=best.ms-4*864e5 && bars[i].t<=best.ms+6*864e5){
+      const rr=bars[i].c/bars[i-1].c-1;
+      if(worst==null||rr<worst) worst=rr;
+    }
+  }
+  if(worst==null) return null;
+  return {landmine: worst<-0.06, worst, dse, approx:best.approx};
+}
+
+/* signalOf = 核心信号(signalCore) + 事件闸门标注：买入信号若踩财报暴雷坑，txt 加⚠️、tip 详述。 */
 function signalOf(r){
+  const sig=signalCore(r);
+  if(sig && sig.type==="buy" && r.landmine && r.landmine.landmine){
+    const lm=r.landmine, sfx=lm.approx?"近似":"";
+    sig.txt+=" ⚠️";
+    sig.tip+=`｜⚠️财报暴雷坑${sfx}（距财报${lm.dse}天·财报日当日${Math.round(lm.worst*100)}%；此类抄底历史仅涨62%/下界52%，明显差于常态71%，慎接飞刀）`;
+  }
+  return sig;
+}
+function signalCore(r){
   const rsi=r.rsi, pe=r.pct, pctB=r.boll?.pctB, p=r.price, ma200=r.ma?.ma200;
   if(HI_VOL.has(r.t)){
     if(MOM_DIP.has(r.t)){         // 趋势回调组：破日线布林下轨 且 价在 MA200 上
@@ -697,7 +738,7 @@ function renderFoot(){
   document.getElementById("foot").innerHTML=`
     <b>数据说明</b>（Massive/Polygon Starter，按最近收盘实时计算）<br>
     • <b>技术面</b>（RSI/KDJ/MACD/BOLL/均线）由复权日线按标准公式算，悬停单元格看完整数值。高亮 <span class="pill p-red" style="padding:0 5px">红=超买/看空</span> <span class="pill p-green" style="padding:0 5px">绿=超卖/金叉</span> <span style="color:var(--amber)">琥珀=关键位</span>：RSI ≥70/≤30；KDJ K≥80或J≥100 / K≤20或J≤0，标金叉死叉；MACD 金叉死叉·柱值(正绿负红)·零轴多空；BOLL 按%B分五档；均线 MA20/50/200 多空排列，距关键均线≤1.5% 标「测MAxx」；量价=OBV 资金流向(近20日 z-score，>1 流入绿 / <−1 流出红)；背离=价创20日新高/低而 RSI 未跟随(顶背离红=回调预警 / 底背离绿=转强预警)。<br>
-    • <b>⚡机会</b>（<code>edge_scanner.py</code> 分组回溯，Tier2 波动率分组 + 动量组按标的性格三档）：<b>稳健股</b> <span class="pill sig-buy">强买入</span> RSI(14)&lt;20(涨88%/下界70%) · <span class="pill sig-buy">买入</span> RSI(14)&lt;25 或 破100日布林下轨(大支撑，涨86%/67%，两信号几乎不重叠) · <span class="pill sig-trim">卖出</span> PE分位&gt;95且RSI(14)&gt;70(金融股极准 GS76%/MS74%/JPM78%，止盈非做空)；<b>动量股三档</b>：趋势回调组(半导体/电力) 破下轨且价ma200上(涨65%/下界59%) · 大级别支撑组(SNOW/TSLA/BABA) 破100日布林下轨(涨71-74%/下界57-60%) · NET/COIN 无可靠信号、暂不提示。KDJ/MACD 实测 edge≈0 未纳入。<br>
+    • <b>⚡机会</b>（<code>edge_scanner.py</code> 分组回溯，Tier2 波动率分组 + 动量组按标的性格三档）：<b>稳健股</b> <span class="pill sig-buy">强买入</span> RSI(14)&lt;20(涨88%/下界70%) · <span class="pill sig-buy">买入</span> RSI(14)&lt;25 或 破100日布林下轨(大支撑，涨86%/67%，两信号几乎不重叠) · <span class="pill sig-trim">卖出</span> PE分位&gt;95且RSI(14)&gt;70(金融股极准 GS76%/MS74%/JPM78%，止盈非做空)；<b>动量股三档</b>：趋势回调组(半导体/电力) 破下轨且价ma200上(涨65%/下界59%) · 大级别支撑组(SNOW/TSLA/BABA) 破100日布林下轨(涨71-74%/下界57-60%) · NET/COIN 无可靠信号、暂不提示。KDJ/MACD 实测 edge≈0 未纳入。<b>事件闸门</b>：买入信号若踩「财报暴雷坑」(近15天有财报日 且 财报当日大阴线&lt;−6%) 标 <b>⚠️</b>——此类抄底回溯仅涨62%/下界52%(vs 常态71%)，是接财报雷的飞刀，慎入；温和回落/远离财报不误伤。<br>
     • <b>看法</b>（当日技术面粗略倾向，与「机会」列互补）：均线/价位/MACD/RSI/KDJ/BOLL/OBV资金流向/背离 8 维度投票 → <span class="view-tag view-bull">看多</span>(≥+2，≥+4★) / <span class="view-tag view-neutral">观望</span> / <span class="view-tag view-bear">看空</span>(≤−2，≤−4★)，悬停看多空构成。仅供快速扫读，不追求高准确率（实测量价/背离 edge 均弱，仅补全面性）。<br>
     • <b>估值</b>：市盈率TTM = 收盘价 ÷ 摊薄EPS(TTM)（无摊薄EPS时 = 市值 ÷ 归母净利润，如伯克希尔）；近5年分位 = 复权5年日线 ÷ 拆股还原TTM EPS 的历史PE百分位，与富途基本一致（多数差≤3）。<b>算不出时显示「—」缺失，绝不用静态值冒充</b>——如历史不足5年、无摊薄EPS(BRK.B)、缺季致TTM滞后。<br>
     • <b style="color:var(--blue)">ˢ</b> = Polygon 漏收某巨头最新季报时已用 SEC 官方 EPS 修正（补上自动切回）；<b style="color:var(--amber)">*</b> = 财报滞后警告（当前无）；<b>ETF</b>(QQQ/SPY) 无财报，仅价格指标。<br>
