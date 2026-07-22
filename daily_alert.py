@@ -122,15 +122,26 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
             raise
     bars = bd.drop_unreliable_price_regime(tk, bars, splits)
     df = bd.add_technical_indicators(bars)
-    # 财报(卖出信号用 PE 分位 + 事件闸门算"财报暴雷坑"，同一次请求)：失败就跳过，绝不拖累买入信号
-    landmine = None
+    # 财报(卖出信号用 PE 分位 + 事件闸门算"财报暴雷坑/数据滞后提示"，同一次请求)：
+    # 云端共享IP 常被限速→加一次轻量重试提高拉取率；仍失败则跳过(买入照常)、但不再静默、打印诊断
+    landmine, fin = None, None
     if not is_etf:
-        try:
-            fin = bd.fetch_quarterly_financials(tk, key)
-            df = bd.add_fundamentals(df, bd.build_fundamentals_daily(fin, splits))
-            landmine = detect_earnings_landmine(df, fin)   # 用同一批财报的 filing_date 判雷区
-        except Exception:
-            df = bd.add_fundamentals(df, pd.DataFrame())   # PE 列 NaN → 卖出不触发，买入照常；landmine 留 None(财报日未知)
+        for attempt in range(2):
+            try:
+                fin = bd.fetch_quarterly_financials(tk, key)
+                break
+            except Exception:
+                if attempt == 0:
+                    time.sleep(1.5); continue
+        if fin is not None:
+            try:
+                df = bd.add_fundamentals(df, bd.build_fundamentals_daily(fin, splits))
+                landmine = detect_earnings_landmine(df, fin)   # 用同一批财报的 filing_date 判雷区/滞后
+            except Exception:
+                df = bd.add_fundamentals(df, pd.DataFrame())
+        else:
+            df = bd.add_fundamentals(df, pd.DataFrame())       # PE 列 NaN → 卖出不触发，买入照常；landmine 留 None
+            print(f"[财报未拉到] {tk}: 疑似限速，本次无 PE 分位与事件闸门提示")
     else:
         df = bd.add_fundamentals(df, pd.DataFrame())
     last = df.iloc[-1]
@@ -191,7 +202,7 @@ def build_messages(asof, groups):
                      f'<table style="width:100%;border-collapse:collapse">{rows}</table></div>')
     html = ('<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,'
             'sans-serif;max-width:520px;margin:0 auto;padding:20px 18px;color:#1a1d21;background:#fff">'
-            '<div style="font-size:19px;font-weight:700;letter-spacing:.3px">⚡ 股票大机会</div>'
+            '<div style="font-size:19px;font-weight:700;letter-spacing:.3px">⚡ 自选股机会信号</div>'
             f'<div style="color:#8a9099;font-size:13px;margin:3px 0 24px">数据截至 {asof}</div>{sections}'
             '<div style="color:#aab0b8;font-size:11px;border-top:1px solid #eef0f2;padding-top:14px;'
             'line-height:1.7">规则来自 edge_scanner 对 31 标的近 5 年回溯：买入=历史高胜率抄底信号；'
@@ -210,7 +221,7 @@ def main():
                            ("TSLA", "特斯拉", "破100日布林下轨(大支撑)｜本标的8次涨75%")]),
                   ("sell", [("GS", "高盛", "PE分位 98·RSI(14) 73")])]
         md, html = build_messages("示例数据（这是测试预览，非真实信号）", sample)
-        notify("自选股机会信号提示 · 样式预览（测试）", md, html)
+        notify("⚡自选股机会信号提示 · 样式预览（测试）", md, html)
         return
 
     key = get_key()
@@ -265,7 +276,7 @@ def main():
 
     groups = [(k, v) for k, v in [("strong", strong_buy), ("buy", buy), ("sell", sell)] if v]
     n_buy, n_sell = len(strong_buy) + len(buy), len(sell)   # 强买入并入买入计数（正文仍分组）
-    title = "自选股机会信号提示：" + "·".join(filter(None, [
+    title = "⚡自选股机会信号提示：" + "·".join(filter(None, [
         f"买入{n_buy}" if n_buy else "",
         f"卖出{n_sell}" if n_sell else ""]))
     md, html = build_messages(asof, groups)
