@@ -24,40 +24,45 @@ def main():
     # 先在完整连续序列上算 5/10/20 日前瞻收益(必须过滤前算，否则 shift 会跨越被删的末尾行)
     for h in (5, 10, 20):
         d[f"fwd{h}"] = d.groupby("ticker")["close"].shift(-h) / d["close"] - 1
-    # 用到的布林周期一次性算好
-    periods = {cfg["boll"][k] for cfg in CFG.values() for k in ("s", "b") if cfg["boll"][k]}
+    d["dt"] = pd.to_datetime(d["date"])
+    # 两套用到的所有布林周期一次性算好
+    periods = {c[w]["boll"][k] for c in CFG.values() for w in ("5y", "2y") for k in ("s", "b") if c[w]["boll"][k]}
     for N in periods:
         ma = d.groupby("ticker")["close"].transform(lambda s: s.rolling(N).mean())
         sd = d.groupby("ticker")["close"].transform(lambda s: s.rolling(N).std())
         d[f"boll{N}"] = d.close <= ma - 2 * sd
     d = d[d["fwd20"].notna()].copy()
     now = pd.Timestamp.today()
+    cutoff = now - pd.DateOffset(years=2)
 
-    def stat(tk, mask):
-        s = d[(d.ticker == tk) & mask.fillna(False)]
+    def stat(gsub, mask):
+        s = gsub[mask.reindex(gsub.index).fillna(False)]
         n = len(s)
         if not n:
             return [0, None, None, None]
         return [n] + [round((s[f"fwd{h}"] > 0).mean() * 100) for h in (5, 10, 20)]
 
-    def since_year(tk):
-        start = pd.to_datetime(d[d.ticker == tk]["date"].min())
-        return int(start.year) if (now - start).days / 365.25 < 4.5 else None
+    def slot_stats(gsub, cfg_win):
+        e = {}
+        if cfg_win["rsi"]["s"]:
+            e["rsi_s"] = stat(gsub, gsub.rsi14 < cfg_win["rsi"]["s"])
+        if cfg_win["rsi"]["b"]:
+            e["rsi_b"] = stat(gsub, gsub.rsi14 < cfg_win["rsi"]["b"])
+        for kind, key in (("boll_s", "s"), ("boll_b", "b")):
+            if cfg_win["boll"][key]:
+                e[kind] = stat(gsub, gsub[f"boll{cfg_win['boll'][key]}"])
+        return e
 
     out = {}
     for tk, cfg in CFG.items():
-        if not (d.ticker == tk).any():
+        g = d[d.ticker == tk]
+        if g.empty:
             continue
-        e = {}
-        if cfg["rsi"]["s"]:
-            e["rsi_s"] = stat(tk, d.rsi14 < cfg["rsi"]["s"])
-        if cfg["rsi"]["b"]:
-            e["rsi_b"] = stat(tk, d.rsi14 < cfg["rsi"]["b"])
-        for kind, key in (("boll_s", "s"), ("boll_b", "b")):
-            if cfg["boll"][key]:
-                e[kind] = stat(tk, d[f"boll{cfg['boll'][key]}"])
-        e["_y"] = since_year(tk)
-        out[tk] = e
+        g2 = g[g["dt"] >= cutoff]
+        e5 = slot_stats(g, cfg["5y"])
+        start = pd.to_datetime(g["date"].min())
+        e5["_y"] = int(start.year) if (now - start).days / 365.25 < 4.5 else None
+        out[tk] = {"5y": e5, "2y": slot_stats(g2, cfg["2y"])}   # 5年套用全样本、2年套用近两年样本
 
     if len(out) < 20:   # 正常应约 26 个；不足说明上游数据残缺，拒绝写表以免覆盖好数据
         raise SystemExit(f"❌ 只有 {len(out)} 个标的的统计，数据不完整，中止(不写 ticker_stats.js)")

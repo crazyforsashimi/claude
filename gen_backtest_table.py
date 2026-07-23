@@ -37,17 +37,20 @@ NAMES = {
 }
 def main():
     d = pd.read_csv(DATA).sort_values(["ticker", "date"]).reset_index(drop=True)
+    d["dt"] = pd.to_datetime(d["date"])
     for h in (5, 10, 20):
         d[f"fwd{h}"] = d.groupby("ticker")["close"].shift(-h) / d["close"] - 1
     CFG = json.loads((ROOT / "signal_config.json").read_text(encoding="utf-8"))
-    for N in {cfg["boll"][k] for cfg in CFG.values() for k in ("s", "b") if cfg["boll"][k]}:
+    periods = {c[w]["boll"][k] for c in CFG.values() for w in ("5y", "2y") for k in ("s", "b") if c[w]["boll"][k]}
+    for N in periods:
         ma = d.groupby("ticker")["close"].transform(lambda s: s.rolling(N).mean())
         sd = d.groupby("ticker")["close"].transform(lambda s: s.rolling(N).std())
         d[f"boll{N}"] = d.close <= ma - 2 * sd
     d = d[d["fwd20"].notna()].copy()
+    cutoff = d["dt"].max() - pd.DateOffset(years=2)
 
-    def stat(tk, mask):
-        s = d[(d.ticker == tk) & mask.fillna(False)]
+    def stat(dwin, tk, mask):
+        s = dwin[(dwin.ticker == tk) & mask.reindex(dwin.index).fillna(False)]
         n = len(s)
         if not n:
             return None
@@ -55,70 +58,62 @@ def main():
         return (n, *[round((s[f"fwd{h}"] > 0).mean() * 100) for h in (5, 10, 20)],
                 round(lb * 100), s["fwd20"].mean() * 100)
 
-    def sigs_for(tk):
-        """该标的的信号档：per-ticker 校准的 RSI 阈值 + 布林周期(signal_config)。无档标的返回空→无信号。"""
-        cfg = CFG.get(tk)
+    def sigs_for(cw):
         out = []
-        if cfg:
-            if cfg["rsi"]["s"]:
-                out.append((f"强买入 · RSI(14)&lt;{cfg['rsi']['s']}", "strong", d.rsi14 < cfg["rsi"]["s"]))
-            if cfg["rsi"]["b"]:
-                out.append((f"买入 · RSI(14)&lt;{cfg['rsi']['b']}", "buy", d.rsi14 < cfg["rsi"]["b"]))
-            if cfg["boll"]["s"]:
-                out.append((f"强买入 · 破 {cfg['boll']['s']} 日布林下轨", "strong", d[f"boll{cfg['boll']['s']}"]))
-            if cfg["boll"]["b"]:
-                out.append((f"买入 · 破 {cfg['boll']['b']} 日布林下轨", "buy", d[f"boll{cfg['boll']['b']}"]))
+        if cw["rsi"]["s"]:
+            out.append((f"强买入 · RSI(14)&lt;{cw['rsi']['s']}", "strong", d.rsi14 < cw["rsi"]["s"]))
+        if cw["rsi"]["b"]:
+            out.append((f"买入 · RSI(14)&lt;{cw['rsi']['b']}", "buy", d.rsi14 < cw["rsi"]["b"]))
+        if cw["boll"]["s"]:
+            out.append((f"强买入 · 破 {cw['boll']['s']} 日布林下轨", "strong", d[f"boll{cw['boll']['s']}"]))
+        if cw["boll"]["b"]:
+            out.append((f"买入 · 破 {cw['boll']['b']} 日布林下轨", "buy", d[f"boll{cw['boll']['b']}"]))
         return out
 
-    def src(tk):
-        cfg = CFG.get(tk)
-        if not cfg:
+    def src(cw):
+        has_r = bool(cw["rsi"]["s"] or cw["rsi"]["b"])
+        has_b = bool(cw["boll"]["s"] or cw["boll"]["b"])
+        if not (has_r or has_b):
             return 3
-        has_r = bool(cfg["rsi"]["s"] or cfg["rsi"]["b"])
-        has_b = bool(cfg["boll"]["s"] or cfg["boll"]["b"])
         return 0 if (has_r and has_b) else (1 if has_r else 2)
-
-    GROUPS = [
-        ("🎯 RSI + 布林 双源", "两类信号都有校准档", "#4f46e5", [t for t in NAMES if src(t) == 0]),
-        ("📉 仅 RSI 档", "RSI 阈值 per-ticker 校准", "#12924f", [t for t in NAMES if src(t) == 1]),
-        ("〽️ 仅布林档", "布林周期 per-ticker 校准", "#b45309", [t for t in NAMES if src(t) == 2]),
-    ]
 
     def pct_td(v, n):
         cls = "hi" if v >= 70 else "mid" if v >= 50 else "lo"
         faint = " faint" if n < 5 else ""
         return f'<td class="num {cls}{faint}">{v}%</td>'
 
-    sections = ""
-    for title, sub, color, tickers in GROUPS:
-        rows = ""
-        for tk in tickers:
-            entries = [(lab, tier, stat(tk, mask)) for lab, tier, mask in sigs_for(tk)]
-            entries = [(lab, tier, s) for lab, tier, s in entries if s]     # 只列有触发的信号
-            if not entries:
-                rows += (f'<tr><td class="tk">{tk}</td><td class="nm">{NAMES[tk]}</td>'
-                         f'<td class="mut" colspan="7">近5年无触发</td></tr>')
+    def build_sections(wkey, dwin):
+        out_html = ""
+        for title, color, code in (("🎯 RSI + 布林 双源", "#4f46e5", 0), ("📉 仅 RSI 档", "#12924f", 1), ("〽️ 仅布林档", "#b45309", 2)):
+            tickers = [t for t in NAMES if t in CFG and src(CFG[t][wkey]) == code]
+            if not tickers:
                 continue
-            for i, (lab, tier, s) in enumerate(entries):
-                n, r5, r10, r20, lb, avg20 = s
-                tkcell = (f'<td class="tk" rowspan="{len(entries)}">{tk}</td>'
-                          f'<td class="nm" rowspan="{len(entries)}">{NAMES[tk]}</td>') if i == 0 else ""
-                avgcls = "hi" if avg20 > 0 else "lo"
-                lbcls = "hi" if lb >= 60 else "mid" if lb >= 50 else "lo"
-                rows += (f'<tr>{tkcell}'
-                         f'<td class="sig {tier}">{lab}</td>'
-                         f'<td class="num">{n}</td>'
-                         f'{pct_td(r5, n)}{pct_td(r10, n)}{pct_td(r20, n)}'
-                         f'<td class="num {lbcls}">{lb}%</td>'
-                         f'<td class="num {avgcls}">{avg20:+.1f}%</td></tr>')
-        sections += (f'<section><div class="gh" style="color:{color}">{title}'
-                     f'<span class="gsub">{sub}</span></div>'
-                     '<div class="tw"><table><thead><tr>'
-                     '<th>代码</th><th>名称</th><th>信号</th><th class="num">触发</th>'
-                     '<th class="num">5日</th><th class="num">10日</th><th class="num">20日</th>'
-                     '<th class="num">20日下界</th><th class="num">20日均值</th></tr></thead>'
-                     f'<tbody>{rows}</tbody></table></div></section>')
+            rows = ""
+            for tk in tickers:
+                entries = [(lab, tier, stat(dwin, tk, mask)) for lab, tier, mask in sigs_for(CFG[tk][wkey])]
+                entries = [(lab, tier, s) for lab, tier, s in entries if s]
+                if not entries:
+                    rows += f'<tr><td class="tk">{tk}</td><td class="nm">{NAMES[tk]}</td><td class="mut" colspan="7">该窗口无触发</td></tr>'
+                    continue
+                for i, (lab, tier, s) in enumerate(entries):
+                    n, r5, r10, r20, lb, avg20 = s
+                    tkcell = (f'<td class="tk" rowspan="{len(entries)}">{tk}</td>'
+                              f'<td class="nm" rowspan="{len(entries)}">{NAMES[tk]}</td>') if i == 0 else ""
+                    avgcls = "hi" if avg20 > 0 else "lo"
+                    lbcls = "hi" if lb >= 60 else "mid" if lb >= 50 else "lo"
+                    rows += (f'<tr>{tkcell}<td class="sig {tier}">{lab}</td><td class="num">{n}</td>'
+                             f'{pct_td(r5, n)}{pct_td(r10, n)}{pct_td(r20, n)}'
+                             f'<td class="num {lbcls}">{lb}%</td><td class="num {avgcls}">{avg20:+.1f}%</td></tr>')
+            out_html += (f'<section><div class="gh" style="color:{color}">{title}</div>'
+                         '<div class="tw"><table><thead><tr>'
+                         '<th>代码</th><th>名称</th><th>信号</th><th class="num">触发</th>'
+                         '<th class="num">5日</th><th class="num">10日</th><th class="num">20日</th>'
+                         '<th class="num">20日下界</th><th class="num">20日均值</th></tr></thead>'
+                         f'<tbody>{rows}</tbody></table></div></section>')
+        return out_html
 
+    sections = ('<h2 class="wtitle">📅 过去 5 年窗口</h2>' + build_sections("5y", d)
+                + '<h2 class="wtitle" style="margin-top:34px">📅 近 2 年窗口</h2>' + build_sections("2y", d[d["dt"] >= cutoff]))
     asof = str(d["date"].max())[:10]
     html = TEMPLATE.replace("{{SECTIONS}}", sections).replace("{{ASOF}}", asof)
     (ROOT / "backtest_stats.html").write_text(html, encoding="utf-8")
@@ -128,7 +123,7 @@ def main():
 TEMPLATE = """<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>买入/强买入信号 · 5年回溯查阅表</title>
+<title>买入/强买入信号 · 双窗口(5年+2年)回溯查阅表</title>
 <style>
   :root{--bg:#eef1f4;--card:#fff;--ink:#1a1d21;--muted:#8a9099;--line:#e4e8ec;--head:#f5f6f8;
     --hi:#12924f;--mid:#b7791f;--lo:#d92d20;--strong:#0b7a41;--buy:#12924f;--zebra:#fafbfc;}
@@ -149,6 +144,7 @@ TEMPLATE = """<!doctype html>
   .lede b{color:var(--ink)}
   .asof{font-size:12.5px;color:var(--muted);margin:0 0 26px}
   section{margin-bottom:26px}
+  .wtitle{font-size:20px;font-weight:750;margin:0 0 16px;padding-bottom:10px;border-bottom:2px solid var(--line);color:var(--ink)}
   .gh{font-size:17px;font-weight:700;margin:0 0 10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
   .gsub{font-size:12px;font-weight:500;color:var(--muted)}
   .tw{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
@@ -173,9 +169,9 @@ TEMPLATE = """<!doctype html>
 </style></head><body>
 <div class="wrap">
   <p class="eyebrow">买入 / 强买入信号 · 历史回溯</p>
-  <h1>31 标的 · 5 年触发次数与 5/10/20 日反弹概率</h1>
-  <p class="lede"><b>per-ticker 信号校准</b>:每只标的用自己近5年数据,定制 <b>RSI 阈值</b> 和 <b>布林下轨周期</b>。判定用<b>原始胜率(多持有期达标)</b>——<b>强买入</b>:5/10/20日里 ≥2个&gt;95% 且 三个都&gt;55%;<b>买入</b>:≥2个&gt;80% 且 三个都&gt;55%。理念:<b>N 小=极端罕见=大机会</b>,不用重罚小样本的 Wilson 下界当门槛。26 只有档、按信号来源(RSI+布林/仅RSI/仅布林)分组;<b>5 只无信号(AMD/BABA/COIN/MS/TSM)诚实留空、不列</b>。</p>
-  <p class="lede">列含<b>触发次数 + 5/10/20日方向胜率 + 20日 Wilson 下界</b>(仅供参考,不是门槛) + 20日平均收益。固定100布林/dip(破日线下轨+MA200)/均线支撑经测试均不达标、已弃。<b>⚠️ 阈值在同份数据上选+评估,有过拟合乐观偏差,小样本高胜率作"极端信号提示"、别当可交易 edge,实盘打折。</b></p>
+  <h1>双窗口回溯 · 5年(长期极端) + 2年(近期敏感)</h1>
+  <p class="lede"><b>per-ticker 双窗口校准</b>:每只标的用 <b>5年</b>(长期极端、质量硬)和 <b>2年</b>(近期敏感、抓当下情绪)各定制 RSI 阈值 + 布林周期。判定用<b>原始胜率</b>——强买入:5/10/20日 ≥2个&gt;95%且三个&gt;55%;买入:≥2个&gt;80%且三个&gt;55%。理念:<b>N 小=极端罕见=大机会</b>。下方分两大块:<b>5年窗口</b>(全样本)和 <b>2年窗口</b>(近两年样本)——2年门槛通常更宽松、更易触发(如 NEE 5年 RSI&lt;18 → 2年 RSI&lt;30),AMD/MS/TSM 只在2年有档。</p>
+  <p class="lede">列含<b>触发次数 + 5/10/20日方向胜率 + 20日 Wilson 下界</b>(参考、不是门槛) + 20日平均收益。<b>⚠️ 阈值在同份数据上选+评估,有过拟合乐观偏差;2年样本更少、且近两年上涨市含更多 beta,参考性弱于5年,实盘打折。</b></p>
   <p class="lede"><b>怎么读</b>:胜率/下界 <span style="color:var(--hi);font-weight:600">≥70/≥60 绿</span> / <span style="color:var(--mid);font-weight:600">中档琥珀</span> / <span style="color:var(--lo);font-weight:600">低 红</span>;触发次数 <b>&lt;5 的行半透明</b>——小样本、极端罕见,由 N 自证。</p>
   <p class="asof">数据截至 {{ASOF}} · 口径与工具/邮件/logic.html 完全一致</p>
   {{SECTIONS}}

@@ -94,8 +94,8 @@
 <body>
 <div class="wrap">
   <p class="eyebrow">大机会提示逻辑</p>
-  <h1>per-ticker 信号系统 · RSI + 布林校准 + 事件闸门</h1>
-  <p class="lede">不用统一阈值,而是<b style="color:var(--ink)">每只标的用自己近5年数据校准</b>最适合它的 <b style="color:var(--ink)">RSI 阈值</b> 与 <b style="color:var(--ink)">布林下轨周期</b>——因为固定 RSI&lt;20/25、固定100布林对不同标的效果<b style="color:var(--ink)">天差地别</b>(强趋势股 RSI 碰不到 20、100布林胜率塌)。判定用<b style="color:var(--ink)">原始胜率</b>而非重罚小样本的 Wilson 下界,理念是 <b style="color:var(--ink)">N 小 = 极端罕见 = 大机会</b>。事件闸门再给买入信号叠一层过滤,避开财报暴雷坑。</p>
+  <h1>per-ticker 双窗口信号系统 · RSI + 布林 + 事件闸门</h1>
+  <p class="lede"><b style="color:var(--ink)">每只标的用自己的数据校准</b>最适合它的 <b style="color:var(--ink)">RSI 阈值</b> 与 <b style="color:var(--ink)">布林下轨周期</b>——因为固定 RSI&lt;20/25、固定100布林对不同标的效果<b style="color:var(--ink)">天差地别</b>。判定用<b style="color:var(--ink)">原始胜率</b>而非重罚小样本的 Wilson 下界,理念是 <b style="color:var(--ink)">N 小 = 极端罕见 = 大机会</b>。<b style="color:var(--ink)">两个窗口并行</b>:<b>5年</b>(长期极端、质量硬) + <b>2年</b>(近期敏感、抓当下情绪,门槛通常更宽松),触发任一套即提示、标注是哪套,<b>「5年+2年都触发」</b>共振信号更强。事件闸门再给买入信号叠一层过滤,避开财报暴雷坑。</p>
 
   <div class="split">
     <b>26 只有信号档</b>(RSI+布林双源 / 仅RSI / 仅布林)　·　<b>5 只无信号</b>诚实留空<br>

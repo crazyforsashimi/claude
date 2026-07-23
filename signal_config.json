@@ -1,262 +1,640 @@
 {
   "AAPL": {
-    "rsi": {
-      "s": 24,
-      "b": 26
+    "5y": {
+      "rsi": {
+        "s": 24,
+        "b": 26
+      },
+      "boll": {
+        "s": null,
+        "b": 200
+      }
     },
-    "boll": {
-      "s": null,
-      "b": 200
+    "2y": {
+      "rsi": {
+        "s": 24,
+        "b": 26
+      },
+      "boll": {
+        "s": null,
+        "b": 150
+      }
+    }
+  },
+  "AMD": {
+    "5y": {
+      "rsi": {
+        "s": null,
+        "b": null
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
+    },
+    "2y": {
+      "rsi": {
+        "s": 26,
+        "b": 28
+      },
+      "boll": {
+        "s": null,
+        "b": 100
+      }
     }
   },
   "AMZN": {
-    "rsi": {
-      "s": 22,
-      "b": 28
+    "5y": {
+      "rsi": {
+        "s": 22,
+        "b": 28
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     },
-    "boll": {
-      "s": null,
-      "b": null
+    "2y": {
+      "rsi": {
+        "s": 24,
+        "b": 26
+      },
+      "boll": {
+        "s": null,
+        "b": 100
+      }
     }
   },
   "AVGO": {
-    "rsi": {
-      "s": 26,
-      "b": 28
+    "5y": {
+      "rsi": {
+        "s": 26,
+        "b": 28
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     },
-    "boll": {
-      "s": null,
-      "b": null
+    "2y": {
+      "rsi": {
+        "s": 28,
+        "b": 30
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     }
   },
   "BRK-B": {
-    "rsi": {
-      "s": null,
-      "b": 22
+    "5y": {
+      "rsi": {
+        "s": null,
+        "b": 22
+      },
+      "boll": {
+        "s": 200,
+        "b": 50
+      }
     },
-    "boll": {
-      "s": 200,
-      "b": 50
+    "2y": {
+      "rsi": {
+        "s": null,
+        "b": 30
+      },
+      "boll": {
+        "s": 200,
+        "b": 50
+      }
     }
   },
   "CAT": {
-    "rsi": {
-      "s": 26,
-      "b": 28
+    "5y": {
+      "rsi": {
+        "s": 26,
+        "b": 28
+      },
+      "boll": {
+        "s": null,
+        "b": 150
+      }
     },
-    "boll": {
-      "s": null,
-      "b": 150
+    "2y": {
+      "rsi": {
+        "s": 26,
+        "b": 30
+      },
+      "boll": {
+        "s": null,
+        "b": 20
+      }
     }
   },
   "CEG": {
-    "rsi": {
-      "s": 28,
-      "b": 30
+    "5y": {
+      "rsi": {
+        "s": 28,
+        "b": 30
+      },
+      "boll": {
+        "s": null,
+        "b": 150
+      }
     },
-    "boll": {
-      "s": null,
-      "b": 150
+    "2y": {
+      "rsi": {
+        "s": 28,
+        "b": 30
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     }
   },
   "GEV": {
-    "rsi": {
-      "s": null,
-      "b": 30
+    "5y": {
+      "rsi": {
+        "s": null,
+        "b": 30
+      },
+      "boll": {
+        "s": null,
+        "b": 50
+      }
     },
-    "boll": {
-      "s": null,
-      "b": 50
+    "2y": {
+      "rsi": {
+        "s": null,
+        "b": 30
+      },
+      "boll": {
+        "s": null,
+        "b": 50
+      }
     }
   },
   "GOOGL": {
-    "rsi": {
-      "s": 26,
-      "b": 28
+    "5y": {
+      "rsi": {
+        "s": 26,
+        "b": 28
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     },
-    "boll": {
-      "s": null,
-      "b": null
+    "2y": {
+      "rsi": {
+        "s": 26,
+        "b": 30
+      },
+      "boll": {
+        "s": 200,
+        "b": 100
+      }
     }
   },
   "GS": {
-    "rsi": {
-      "s": null,
-      "b": 30
+    "5y": {
+      "rsi": {
+        "s": null,
+        "b": 30
+      },
+      "boll": {
+        "s": null,
+        "b": 200
+      }
     },
-    "boll": {
-      "s": null,
-      "b": 200
+    "2y": {
+      "rsi": {
+        "s": null,
+        "b": 30
+      },
+      "boll": {
+        "s": null,
+        "b": 100
+      }
     }
   },
   "JPM": {
-    "rsi": {
-      "s": 28,
-      "b": 30
+    "5y": {
+      "rsi": {
+        "s": 28,
+        "b": 30
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     },
-    "boll": {
-      "s": null,
-      "b": null
+    "2y": {
+      "rsi": {
+        "s": 28,
+        "b": 30
+      },
+      "boll": {
+        "s": 150,
+        "b": 50
+      }
     }
   },
   "LEU": {
-    "rsi": {
-      "s": null,
-      "b": null
+    "5y": {
+      "rsi": {
+        "s": null,
+        "b": null
+      },
+      "boll": {
+        "s": null,
+        "b": 150
+      }
     },
-    "boll": {
-      "s": null,
-      "b": 150
+    "2y": {
+      "rsi": {
+        "s": 28,
+        "b": 30
+      },
+      "boll": {
+        "s": 150,
+        "b": 50
+      }
     }
   },
   "LLY": {
-    "rsi": {
-      "s": null,
-      "b": 28
+    "5y": {
+      "rsi": {
+        "s": null,
+        "b": 28
+      },
+      "boll": {
+        "s": 200,
+        "b": 100
+      }
     },
-    "boll": {
-      "s": 200,
-      "b": 100
+    "2y": {
+      "rsi": {
+        "s": null,
+        "b": 30
+      },
+      "boll": {
+        "s": 200,
+        "b": 100
+      }
     }
   },
   "MCD": {
-    "rsi": {
-      "s": 20,
-      "b": 28
+    "5y": {
+      "rsi": {
+        "s": 20,
+        "b": 28
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     },
-    "boll": {
-      "s": null,
-      "b": null
+    "2y": {
+      "rsi": {
+        "s": 26,
+        "b": 28
+      },
+      "boll": {
+        "s": null,
+        "b": 50
+      }
     }
   },
   "META": {
-    "rsi": {
-      "s": null,
-      "b": 24
+    "5y": {
+      "rsi": {
+        "s": null,
+        "b": 24
+      },
+      "boll": {
+        "s": 200,
+        "b": 150
+      }
     },
-    "boll": {
-      "s": 200,
-      "b": 150
+    "2y": {
+      "rsi": {
+        "s": null,
+        "b": null
+      },
+      "boll": {
+        "s": 200,
+        "b": 150
+      }
+    }
+  },
+  "MS": {
+    "5y": {
+      "rsi": {
+        "s": null,
+        "b": null
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
+    },
+    "2y": {
+      "rsi": {
+        "s": null,
+        "b": null
+      },
+      "boll": {
+        "s": null,
+        "b": 100
+      }
     }
   },
   "MSFT": {
-    "rsi": {
-      "s": 24,
-      "b": 26
+    "5y": {
+      "rsi": {
+        "s": 24,
+        "b": 26
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     },
-    "boll": {
-      "s": null,
-      "b": null
+    "2y": {
+      "rsi": {
+        "s": 24,
+        "b": 26
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     }
   },
   "MU": {
-    "rsi": {
-      "s": 26,
-      "b": 30
+    "5y": {
+      "rsi": {
+        "s": 26,
+        "b": 30
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     },
-    "boll": {
-      "s": null,
-      "b": null
+    "2y": {
+      "rsi": {
+        "s": 26,
+        "b": 28
+      },
+      "boll": {
+        "s": null,
+        "b": 100
+      }
     }
   },
   "NEE": {
-    "rsi": {
-      "s": 16,
-      "b": 18
+    "5y": {
+      "rsi": {
+        "s": 16,
+        "b": 18
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     },
-    "boll": {
-      "s": null,
-      "b": null
+    "2y": {
+      "rsi": {
+        "s": 28,
+        "b": 30
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     }
   },
   "NET": {
-    "rsi": {
-      "s": 22,
-      "b": 24
+    "5y": {
+      "rsi": {
+        "s": 22,
+        "b": 24
+      },
+      "boll": {
+        "s": null,
+        "b": 150
+      }
     },
-    "boll": {
-      "s": null,
-      "b": 150
+    "2y": {
+      "rsi": {
+        "s": null,
+        "b": null
+      },
+      "boll": {
+        "s": null,
+        "b": 150
+      }
     }
   },
   "NVDA": {
-    "rsi": {
-      "s": null,
-      "b": 28
+    "5y": {
+      "rsi": {
+        "s": null,
+        "b": 28
+      },
+      "boll": {
+        "s": 200,
+        "b": 150
+      }
     },
-    "boll": {
-      "s": 200,
-      "b": 150
+    "2y": {
+      "rsi": {
+        "s": null,
+        "b": 30
+      },
+      "boll": {
+        "s": 200,
+        "b": 50
+      }
     }
   },
   "QCOM": {
-    "rsi": {
-      "s": 22,
-      "b": 26
+    "5y": {
+      "rsi": {
+        "s": 22,
+        "b": 26
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     },
-    "boll": {
-      "s": null,
-      "b": null
+    "2y": {
+      "rsi": {
+        "s": 24,
+        "b": 26
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     }
   },
   "QQQ": {
-    "rsi": {
-      "s": 26,
-      "b": 28
+    "5y": {
+      "rsi": {
+        "s": 26,
+        "b": 28
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     },
-    "boll": {
-      "s": null,
-      "b": null
+    "2y": {
+      "rsi": {
+        "s": 28,
+        "b": 30
+      },
+      "boll": {
+        "s": 200,
+        "b": 150
+      }
     }
   },
   "SNOW": {
-    "rsi": {
-      "s": 20,
-      "b": 22
+    "5y": {
+      "rsi": {
+        "s": 20,
+        "b": 22
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     },
-    "boll": {
-      "s": null,
-      "b": null
+    "2y": {
+      "rsi": {
+        "s": 28,
+        "b": 30
+      },
+      "boll": {
+        "s": null,
+        "b": 50
+      }
     }
   },
   "SOXX": {
-    "rsi": {
-      "s": 24,
-      "b": 30
+    "5y": {
+      "rsi": {
+        "s": 24,
+        "b": 30
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     },
-    "boll": {
-      "s": null,
-      "b": null
+    "2y": {
+      "rsi": {
+        "s": 22,
+        "b": 24
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     }
   },
   "SPY": {
-    "rsi": {
-      "s": 26,
-      "b": 30
+    "5y": {
+      "rsi": {
+        "s": 26,
+        "b": 30
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     },
-    "boll": {
-      "s": null,
-      "b": null
+    "2y": {
+      "rsi": {
+        "s": 28,
+        "b": 30
+      },
+      "boll": {
+        "s": 200,
+        "b": 150
+      }
     }
   },
   "TSLA": {
-    "rsi": {
-      "s": null,
-      "b": 18
+    "5y": {
+      "rsi": {
+        "s": null,
+        "b": 18
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
     },
-    "boll": {
-      "s": null,
-      "b": null
+    "2y": {
+      "rsi": {
+        "s": 22,
+        "b": 24
+      },
+      "boll": {
+        "s": 150,
+        "b": 150
+      }
+    }
+  },
+  "TSM": {
+    "5y": {
+      "rsi": {
+        "s": null,
+        "b": null
+      },
+      "boll": {
+        "s": null,
+        "b": null
+      }
+    },
+    "2y": {
+      "rsi": {
+        "s": 26,
+        "b": 28
+      },
+      "boll": {
+        "s": 200,
+        "b": 150
+      }
     }
   },
   "VST": {
-    "rsi": {
-      "s": null,
-      "b": 28
+    "5y": {
+      "rsi": {
+        "s": null,
+        "b": 28
+      },
+      "boll": {
+        "s": null,
+        "b": 150
+      }
     },
-    "boll": {
-      "s": null,
-      "b": 150
+    "2y": {
+      "rsi": {
+        "s": null,
+        "b": null
+      },
+      "boll": {
+        "s": null,
+        "b": 150
+      }
     }
   }
 }

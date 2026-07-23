@@ -166,7 +166,7 @@ let API_KEY = (((typeof window!=="undefined" && window.MASSIVE_API_KEY) || local
 const BASE = "https://api.polygon.io";
 const CONCURRENCY = 4;             // Starter 无限速，适度并发
 const FIN_TTL_DAYS = 20;           // 财报缓存天数（季度才变）
-const CACHE_KEY = "screener_cache_v5";   // v5: per-ticker 信号(rec.trig 新字段)，旧缓存无此字段需作废重拉
+const CACHE_KEY = "screener_cache_v6";   // v6: 双窗口(trig5/trig2)，旧缓存无此字段需作废重拉
 
 /* 关注标的：代码 / 中文名 / 板块分组(行业均值) / ETF标记 /
    secEps+secEpsThru = SEC官方TTM摊薄EPS覆盖(仅用于 Polygon 漏收季报的巨头) */
@@ -382,14 +382,17 @@ async function fetchTicker(u){
     const ys=new Date(new Date().getFullYear(),0,1).getTime();             // 年初至今：今年首个交易日收盘
     let yb=null; for(const b of ab){ if(b.t>=ys){ yb=b.c; break; } }
     rec.ytd=yb?rec.price/yb-1:null;
-    // per-ticker 信号触发状态：RSI 阈值 + 布林周期(各标的校准，来自 SIGNAL_CFG)
-    rec.trig={};
+    // per-ticker 双窗口信号触发状态：5年 + 2年各套的 RSI 阈值 + 布林周期(来自 SIGNAL_CFG)
+    rec.trig5={}; rec.trig2={};
     const _cfg=SIGNAL_CFG[u.t];
     if(_cfg){
-      if(_cfg.rsi.s) rec.trig.rsi_s = rec.rsi!=null && rec.rsi<_cfg.rsi.s;
-      if(_cfg.rsi.b) rec.trig.rsi_b = rec.rsi!=null && rec.rsi<_cfg.rsi.b;
-      for(const [k,N] of [["boll_s",_cfg.boll.s],["boll_b",_cfg.boll.b]]){
-        if(N && cl.length>=N){ const m=avg(cl.slice(-N)), sd=Math.sqrt(avg(cl.slice(-N).map(x=>(x-m)**2))); rec.trig[k]=rec.price<=m-2*sd; }
+      for(const [w,tg] of [["5y",rec.trig5],["2y",rec.trig2]]){
+        const cw=_cfg[w]; if(!cw) continue;
+        if(cw.rsi.s) tg.rsi_s = rec.rsi!=null && rec.rsi<cw.rsi.s;
+        if(cw.rsi.b) tg.rsi_b = rec.rsi!=null && rec.rsi<cw.rsi.b;
+        for(const [k,N] of [["boll_s",cw.boll.s],["boll_b",cw.boll.b]]){
+          if(N && cl.length>=N){ const m=avg(cl.slice(-N)), sd=Math.sqrt(avg(cl.slice(-N).map(x=>(x-m)**2))); tg[k]=rec.price<=m-2*sd; }
+        }
       }
     }
     // OBV 资金流向(近20日 z-score)：>1 流入 / <−1 流出
@@ -489,7 +492,7 @@ function compute(){
       mktcap:d.mktcap??null, peTTM:d.peTTM??null,
       pct:d.pct??null, pctReason:d.pctReason,
       rsi:d.rsi??null, macd:d.macd, kdj:d.kdj, boll:d.boll, ma:d.ma, price:d.price,
-      obvZ:d.obvZ??null, bullDiv:!!d.bullDiv, bearDiv:!!d.bearDiv, chg1d:d.chg1d??null, ytd:d.ytd??null, trig:d.trig||{},
+      obvZ:d.obvZ??null, bullDiv:!!d.bullDiv, bearDiv:!!d.bearDiv, chg1d:d.chg1d??null, ytd:d.ytd??null, trig5:d.trig5||{}, trig2:d.trig2||{},
       asof:d.asof, err:d.err, finStale:d.finStale, finAsof:d.finAsof, epsSrc:d.epsSrc, epsThru:d.epsThru, landmine:d.landmine,
     };
   });
@@ -513,11 +516,11 @@ function classifyPct(v){ if(v==null)return""; return v>=80?"p-red":v<=20?"p-gree
    个股率来自 ticker_stats.js(build_ticker_stats.py 按各标的档生成)——N 小也保留、可靠性由 N 自证。 */
 const TICKER_STATS = (typeof window!=="undefined" && window.TICKER_STATS) || {};
 const SIGNAL_CFG = (typeof window!=="undefined" && window.SIGNAL_CFG) || {};   // per-ticker RSI阈值 + 布林周期
-function tickerStat(tk,key){const e=TICKER_STATS[tk];const s=e&&e[key];const period=(e&&e._y)?`自${e._y}年`:"过去五年";if(!s||s[0]===0)return `本标的${period} 0 次(极罕见)`;return `本标的${period}回溯 ${s[0]} 次·涨率 5日${s[1]}% / 10日${s[2]}% / 20日${s[3]}%`;}
+function tickerStat(tk,window,key){const e=(TICKER_STATS[tk]||{})[window]||{};const s=e[key];const period=window==="2y"?"近两年":(e._y?`自${e._y}年`:"过去五年");if(!s||s[0]===0)return `本标的${period} 0 次(极罕见)`;return `本标的${period}回溯 ${s[0]} 次·涨率 5日${s[1]}% / 10日${s[2]}% / 20日${s[3]}%`;}
 const HI_VOL = new Set(["LEU","COIN","NET","SNOW","TSLA","AMD","GEV","MU","NVDA","BABA","CEG","VST","AVGO"]);  // 卖出信号排除(超买续涨)
 
 /* 机会标签的自定义悬浮卡片：解析 signalOf 的 tip(｜分隔) → bullet 分列 + 标的/信号来源/信号档头部 */
-function grpLabel(tk){ const c=SIGNAL_CFG[tk]||{},r=c.rsi||{},b=c.boll||{}; const hasR=!!(r.s||r.b),hasB=!!(b.s||b.b); return hasR&&hasB?"RSI+布林":hasB?"布林档":"RSI档"; }
+function grpLabel(tk){ const c=SIGNAL_CFG[tk]||{}; let hasR=false,hasB=false; for(const w of ["5y","2y"]){const cw=c[w]; if(!cw)continue; hasR=hasR||!!(cw.rsi.s||cw.rsi.b); hasB=hasB||!!(cw.boll.s||cw.boll.b);} return hasR&&hasB?"RSI+布林":hasB?"布林档":"RSI档"; }
 const _esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const OPOP = document.createElement("div"); OPOP.className="optip-pop"; document.body.appendChild(OPOP);
 function buildOptip(p){
@@ -591,17 +594,24 @@ function signalOf(r){
   }
   return sig;
 }
+function descBody(kind,cw,rsi){
+  if(kind==="rsi_s") return `RSI(14) ${rsi.toFixed(1)} <${cw.rsi.s} 极端超卖`;
+  if(kind==="rsi_b") return `RSI(14) ${rsi.toFixed(1)} <${cw.rsi.b} 深度超卖`;
+  if(kind==="boll_s") return `破 ${cw.boll.s} 日布林下轨（深度支撑）`;
+  return `破 ${cw.boll.b} 日布林下轨`;
+}
 function signalCore(r){
-  const cfg=SIGNAL_CFG[r.t], trig=r.trig||{}, rsi=r.rsi, pe=r.pct;
-  if(cfg){   // per-ticker：强买入(RSI极端超卖/破深周期布林)优先，其次买入。阈值/周期各标的校准
-    if(trig.rsi_s) return {type:"buy", cls:"sig-buy", txt:"强买入 ★",
-      tip:`RSI(14) ${rsi.toFixed(1)} <${cfg.rsi.s} 极端超卖｜${tickerStat(r.t,'rsi_s')}`};
-    if(trig.boll_s) return {type:"buy", cls:"sig-buy", txt:"强买入 ★",
-      tip:`破 ${cfg.boll.s} 日布林下轨（深度支撑）｜${tickerStat(r.t,'boll_s')}`};
-    if(trig.rsi_b) return {type:"buy", cls:"sig-buy", txt:"买入",
-      tip:`RSI(14) ${rsi.toFixed(1)} <${cfg.rsi.b} 深度超卖｜${tickerStat(r.t,'rsi_b')}`};
-    if(trig.boll_b) return {type:"buy", cls:"sig-buy", txt:"买入",
-      tip:`破 ${cfg.boll.b} 日布林下轨｜${tickerStat(r.t,'boll_b')}`};
+  const cfg=SIGNAL_CFG[r.t], t5=r.trig5||{}, t2=r.trig2||{}, rsi=r.rsi, pe=r.pct;
+  const fired=(t,lvl)=>{ for(const k of [`rsi_${lvl}`,`boll_${lvl}`]) if(t[k]) return k; return null; };
+  if(cfg){   // 双窗口：强买入(级别s)优先于买入(级别b)；同级别 5年/2年任一触发即出、标注哪套，主套优先5年
+    for(const [lvl,txt] of [["s","强买入 ★"],["b","买入"]]){
+      const k5=fired(t5,lvl), k2=fired(t2,lvl);
+      if(!k5&&!k2) continue;
+      const wins=(k5?["5年"]:[]).concat(k2?["2年"]:[]);
+      const wlabel = wins.length===2 ? "5年+2年窗口都触发" : `${wins[0]}窗口`;
+      const w=k5?"5y":"2y", kk=k5||k2;
+      return {type:"buy", cls:"sig-buy", txt, tip:`${descBody(kk,cfg[w],rsi)} · ${wlabel}｜${tickerStat(r.t,w,kk)}`};
+    }
   }
   if(!HI_VOL.has(r.t) && pe!=null && pe>95 && rsi!=null && rsi>70){   // 卖出/减仓参考(非高波动股)
     return {type:"trim", cls:"sig-trim", txt:"卖出",
