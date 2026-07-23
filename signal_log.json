@@ -1,0 +1,26 @@
+[
+ {
+  "date": "2026-07-23",
+  "ticker": "TSLA",
+  "name": "特斯拉",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 321.52,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-07-23",
+  "ticker": "MCD",
+  "name": "麦当劳",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "2年",
+  "entry_close": 262.24,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ }
+]

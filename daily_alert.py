@@ -76,6 +76,49 @@ def extract_detail(m, kind, w):
     return sub[["date", "close", "chg1d", "rsi", "f5", "f10", "f20"]].values.tolist()
 
 
+# ---- forward tracking：从今天起记录每次触发的买入/强买入信号，逐日补算 5/10/20 日真实表现 ----
+# 目的：积累无偏的样本外前瞻验证(对照回测胜率，看过拟合吃掉多少)。存 signal_log.json 进仓库。
+LOG_PATH = os.path.join(os.path.dirname(__file__), "signal_log.json")
+
+
+def load_log():
+    try:
+        return json.load(open(LOG_PATH, encoding="utf-8"))
+    except Exception:
+        return []
+
+
+def save_log(log):
+    json.dump(log, open(LOG_PATH, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+
+
+def sig_short(kind, cw):
+    """信号简称 → (级别, 信号文字)。"""
+    lvl = "强买入" if kind.endswith("_s") else "买入"
+    if kind == "rsi_s":
+        return lvl, f"RSI(14)<{cw['rsi']['s']}"
+    if kind == "rsi_b":
+        return lvl, f"RSI(14)<{cw['rsi']['b']}"
+    if kind == "boll_s":
+        return lvl, f"破{cw['boll']['s']}日布林"
+    return lvl, f"破{cw['boll']['b']}日布林"
+
+
+def update_pending(log, tk, ddf):
+    """用该标的已拉的日线，给 log 里未填满的记录补算触发后 5/10/20 交易日收益(零额外 API)。"""
+    dates, closes = list(ddf["date"]), list(ddf["close"])
+    idx = {d: i for i, d in enumerate(dates)}
+    for r in log:
+        if r["ticker"] != tk or r.get("fwd20") is not None:
+            continue
+        i = idx.get(r["date"])
+        if i is None:
+            continue
+        for h, key in ((5, "fwd5"), (10, "fwd10"), (20, "fwd20")):
+            if r[key] is None and i + h < len(closes):
+                r[key] = round(closes[i + h] / r["entry_close"] - 1, 4)
+
+
 def detect_earnings_landmine(df, fin):
     """判断"触发买入的这次下跌是不是财报暴雷砸的坑"。
     回溯验证：近15天内有财报日 且 财报当日/次日出现大阴线(单日<-6%)的买入信号，20日涨率仅62%
@@ -216,7 +259,8 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
             ts2[k] = pstat(mk, valid2); tr2[k] = bool(mk.iloc[-1])
     start_dt = dts.iloc[0]
     since = int(start_dt.year) if (pd.Timestamp.today() - start_dt).days / 365.25 < 4.5 else None
-    return {"date": str(last["date"]), "rsi": last["rsi14"], "pe_pctile": last.get("pe_percentile_causal"),
+    return {"date": str(last["date"]), "rsi": last["rsi14"], "close": float(last["close"]),
+            "pe_pctile": last.get("pe_percentile_causal"),
             "cfg5": cfg5, "cfg2": cfg2, "trig5": tr5, "trig2": tr2, "tstats5": ts5, "tstats2": ts2,
             "masks5": masks5, "masks2": masks2, "detail_df": detail_df, "cutoff": cutoff,
             "landmine": landmine, "since": since}
@@ -375,6 +419,8 @@ def main():
     strong_buy, buy, sell = [], [], []
     asof = None
     n_fail = 0
+    log = load_log()                     # forward tracking：记录每次触发 + 补算历史 pending 的 5/10/20 日表现
+    logged = {(r["date"], r["ticker"], r["signal"], r["window"]) for r in log}
     for tk, is_etf in bd.UNIVERSE:
         time.sleep(0.4)                  # 标的间降频，避免瞬时触发限速
         try:
@@ -386,6 +432,7 @@ def main():
         if not m or m["rsi"] is None:
             n_fail += 1
             continue
+        update_pending(log, tk, m["detail_df"])   # 用已拉日线给该标的的历史记录补算 fwd(零额外 API)
         asof, rsi, pe = m["date"], m["rsi"], m["pe_pctile"]
         name = NAMES.get(tk, "")
         since = m.get("since")           # 数据起始年(新股不足5年时)，供 sig_desc 的 5年个股率文案
@@ -412,9 +459,20 @@ def main():
                 else:
                     desc, kind, w = sig_desc(k2, cfg2, rsi, ts2[k2], None, lm, "2y", wlabel), k2, "2y"
                 bucket.append((tk, name, desc, extract_detail(m, kind, w)))
+                # forward tracking：记这次触发(去重:同一 日期+标的+信号+窗口 只记一次)，之后逐日补算表现
+                lvl, sh = sig_short(kind, cfg5 if w == "5y" else cfg2)
+                wshort = "+".join(wins)
+                lkey = (asof, tk, sh, wshort)
+                if lkey not in logged:
+                    log.append({"date": asof, "ticker": tk, "name": name, "level": lvl, "signal": sh,
+                                "window": wshort, "entry_close": round(m["close"], 2),
+                                "fwd5": None, "fwd10": None, "fwd20": None})
+                    logged.add(lkey)
                 break                    # 强买入触发就不再判买入
         if tk not in HI_VOL and pe is not None and pe > 95 and rsi > 70:   # 卖出/减仓参考(非高波动股)
             sell.append((tk, name, f"PE分位 {pe:.0f}·RSI(14) {rsi:.1f}", []))
+
+    save_log(log)                        # 持久化 forward 记录(GitHub Action 会 commit signal_log.json)
 
     if n_fail > 3:   # 拉取失败过多(可能云端限速)：明确告警，绝不静默漏报
         warn = f"本次 {n_fail}/{len(bd.UNIVERSE)} 个标的数据拉取失败(疑似限速)，未完整检测、可能漏报信号，请留意。"

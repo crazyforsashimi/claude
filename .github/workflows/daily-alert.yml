@@ -13,6 +13,9 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: write          # 允许 commit forward 记录 signal_log.json 回仓库
+
 jobs:
   alert:
     runs-on: ubuntu-latest
@@ -35,3 +38,13 @@ jobs:
           SMTP_TO: ${{ secrets.SMTP_TO }}
           ALERT_TEST: ${{ github.event.inputs.test }}
         run: python daily_alert.py
+      - name: 提交 forward 记录(signal_log.json)
+        if: ${{ github.event.inputs.test != 'true' }}   # 测试模式不动记录
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add signal_log.json
+          git diff --staged --quiet && exit 0            # 无新触发/无补算 → 不提交
+          git commit -m "chore: forward 信号记录更新 [skip ci]"
+          git pull --rebase --autostash origin main || true   # 避免与其它 commit 冲突
+          git push
