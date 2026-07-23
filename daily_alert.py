@@ -65,6 +65,17 @@ def fmt_tstat(s, since=None, window="5y"):
     return f"本标的{period}回溯{n}次·涨率 5日{r5}% / 10日{r10}% / 20日{r20}%"
 
 
+def extract_detail(m, kind, w):
+    """该档在触发窗口内的历史触发明细 → [[date,close,chg1d,rsi,f5,f10,f20],...]。数据全来自已拉 df，不额外调 API。"""
+    mask = (m["masks5"] if w == "5y" else m["masks2"]).get(kind)
+    if mask is None:
+        return []
+    sub = m["detail_df"][mask.fillna(False).values]
+    if w == "2y":
+        sub = sub[sub["dt"] >= m["cutoff"]]
+    return sub[["date", "close", "chg1d", "rsi", "f5", "f10", "f20"]].values.tolist()
+
+
 def detect_earnings_landmine(df, fin):
     """判断"触发买入的这次下跌是不是财报暴雷砸的坑"。
     回溯验证：近15天内有财报日 且 财报当日/次日出现大阴线(单日<-6%)的买入信号，20日涨率仅62%
@@ -178,8 +189,13 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
     cfg = SIGNAL_CFG.get(tk)                       # {"5y":{...},"2y":{...}} 或 None(无信号档)
     fwd = {h: c.shift(-h) / c - 1 for h in (5, 10, 20)}
     dts = pd.to_datetime(df["date"])
+    cutoff = pd.Timestamp.today() - pd.DateOffset(years=2)
     valid5 = fwd[20].notna()                                          # 5年窗口:全部可算20日的信号点
-    valid2 = valid5 & (dts >= pd.Timestamp.today() - pd.DateOffset(years=2))   # 2年窗口:仅近两年
+    valid2 = valid5 & (dts >= cutoff)                                 # 2年窗口:仅近两年
+    # 供历史触发明细表：日期/收盘/当日涨跌/RSI/5-10-20日(都是已拉数据本地算，不额外调 API)
+    detail_df = pd.DataFrame({"dt": dts, "date": [str(x)[:10] for x in df["date"]], "close": c,
+                              "chg1d": c.pct_change(), "rsi": df["rsi14"],
+                              "f5": fwd[5], "f10": fwd[10], "f20": fwd[20]})
 
     def pstat(mask, vmask):
         mm = (mask & vmask).fillna(False)
@@ -188,23 +204,21 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
             return [0, None, None, None]
         return [n] + [round((fwd[h][mm] > 0).mean() * 100) for h in (5, 10, 20)]
 
-    def win(cfg_win, vmask):                       # 一套的 (个股率, 当前触发)
-        ts, tr = {}, {}
-        for kind, mask in signal_masks(df, cfg_win).items():
-            ts[kind] = pstat(mask, vmask)
-            tr[kind] = bool(mask.iloc[-1])
-        return ts, tr
-
     cfg5 = cfg2 = None
     ts5 = tr5 = ts2 = tr2 = {}
+    masks5 = masks2 = {}
     if cfg:
         cfg5, cfg2 = cfg["5y"], cfg["2y"]
-        ts5, tr5 = win(cfg5, valid5)              # 5年个股率用全样本
-        ts2, tr2 = win(cfg2, valid2)              # 2年个股率用近两年样本
+        masks5, masks2 = signal_masks(df, cfg5), signal_masks(df, cfg2)
+        for k, mk in masks5.items():
+            ts5[k] = pstat(mk, valid5); tr5[k] = bool(mk.iloc[-1])
+        for k, mk in masks2.items():
+            ts2[k] = pstat(mk, valid2); tr2[k] = bool(mk.iloc[-1])
     start_dt = dts.iloc[0]
     since = int(start_dt.year) if (pd.Timestamp.today() - start_dt).days / 365.25 < 4.5 else None
     return {"date": str(last["date"]), "rsi": last["rsi14"], "pe_pctile": last.get("pe_percentile_causal"),
             "cfg5": cfg5, "cfg2": cfg2, "trig5": tr5, "trig2": tr2, "tstats5": ts5, "tstats2": ts2,
+            "masks5": masks5, "masks2": masks2, "detail_df": detail_df, "cutoff": cutoff,
             "landmine": landmine, "since": since}
 
 
@@ -239,18 +253,63 @@ def _bullet_style(i, text, main_color):
     return "#c3c8ce", "#8a9099", "12.5px"                                    # 个股回溯率等
 
 
+def _p(v, dec=1):
+    return "—" if v is None or (isinstance(v, float) and pd.isna(v)) else f"{v * 100:+.{dec}f}%"
+
+
+def detail_html(detail):
+    """历史触发明细 HTML 小表：日期/收盘/当日涨跌/RSI/5-10-20日。最近10次 + 共X次。"""
+    if not detail:
+        return ""
+    total = len(detail)
+    rows = detail[-10:]
+    cap = f"历史触发（共 {total} 次{'，仅列最近 10 次' if total > 10 else ''}；当日涨跌可看是急杀还是缓跌）"
+    ths = "".join(f'<th style="padding:3px 7px;text-align:right;color:#8a9099;font-weight:600;border-bottom:1px solid #eef0f2">{h}</th>'
+                  for h in ("日期", "收盘", "当日涨跌", "RSI", "5日", "10日", "20日"))
+
+    def pc(v):
+        if v is None or pd.isna(v):
+            return '<td style="padding:3px 7px;text-align:right;color:#c3c8ce">—</td>'
+        col = "#12924f" if v > 0 else "#c0392b"
+        return f'<td style="padding:3px 7px;text-align:right;color:{col};font-variant-numeric:tabular-nums">{v * 100:+.1f}%</td>'
+
+    trs = ""
+    for date, close, chg, rsi, f5, f10, f20 in rows:
+        trs += ('<tr>'
+                f'<td style="padding:3px 7px;color:#3a3f45">{date}</td>'
+                f'<td style="padding:3px 7px;text-align:right;color:#3a3f45;font-variant-numeric:tabular-nums">{close:.2f}</td>'
+                f'{pc(chg)}'
+                f'<td style="padding:3px 7px;text-align:right;color:#3a3f45">{rsi:.0f}</td>'
+                f'{pc(f5)}{pc(f10)}{pc(f20)}</tr>')
+    return (f'<div style="color:#8a9099;font-size:11px;margin:7px 0 3px">{cap}</div>'
+            '<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:11.5px;margin-bottom:4px">'
+            f'<thead><tr>{ths}</tr></thead><tbody>{trs}</tbody></table>')
+
+
+def detail_md(detail):
+    """历史触发明细 markdown 行(微信)。"""
+    if not detail:
+        return []
+    total = len(detail)
+    out = [f"  - 历史触发（共 {total} 次{'、列最近 10' if total > 10 else ''}）："]
+    for date, close, chg, rsi, f5, f10, f20 in detail[-10:]:
+        out.append(f"    {date} 收{close:.1f} 当日{_p(chg, 0)} RSI{rsi:.0f} → 5/10/20日 {_p(f5, 0)}/{_p(f10, 0)}/{_p(f20, 0)}")
+    return out
+
+
 def build_messages(asof, groups):
-    """groups: [(key, [(ticker,name,metric),...]), ...] → (markdown 给Server酱, HTML 给邮件)。
-    metric 用 ｜ 分隔多段(信号描述｜个股率｜财报提示…) → 渲染成 bullet 分列 + 标的组别标签。"""
+    """groups: [(key, [(ticker,name,metric,detail),...]), ...] → (markdown 给Server酱, HTML 给邮件)。
+    metric 用 ｜ 分隔多段 → bullet 分列 + 组别标签；detail 是历史触发明细 → 小表。"""
     # ---- markdown（微信 Server酱）：嵌套 bullet ----
     md = [f"数据截至 {asof}"]
     for key, items in groups:
         label, _, _ = GROUP_META[key]
         lines = [f"**{label}**"]
-        for t, n, m in items:
+        for t, n, mtc, detail in items:
             lines.append(f"- **{t}** {n}（{group_label(t)[0]}）")
-            for p in [x.strip() for x in m.split("｜") if x.strip()]:
+            for p in [x.strip() for x in mtc.split("｜") if x.strip()]:
                 lines.append(f"  - {p}")
+            lines += detail_md(detail)
         md.append("\n".join(lines))
     md_txt = "\n\n".join(md).replace("&lt;", "<").replace("&gt;", ">")
 
@@ -259,9 +318,9 @@ def build_messages(asof, groups):
     for key, items in groups:
         label, sub, color = GROUP_META[key]
         blocks = ""
-        for t, n, m in items:
+        for t, n, mtc, detail in items:
             gl, gbg, gfg = group_label(t)
-            parts = [x.strip() for x in m.split("｜") if x.strip()]
+            parts = [x.strip() for x in mtc.split("｜") if x.strip()]
             rows = ""
             for i, p in enumerate(parts):
                 dot, txtcol, fs = _bullet_style(i, p, color)
@@ -275,7 +334,8 @@ def build_messages(asof, groups):
                        f'<span style="display:inline-block;margin-left:8px;padding:1px 8px;border-radius:4px;'
                        f'background:{gbg};color:{gfg};font-size:11px;font-weight:600;vertical-align:middle">{gl}</span>'
                        '</div>'
-                       f'<table cellpadding="0" cellspacing="0" style="border-collapse:collapse">{rows}</table></div>')
+                       f'<table cellpadding="0" cellspacing="0" style="border-collapse:collapse">{rows}</table>'
+                       f'{detail_html(detail)}</div>')
         sections += (f'<div style="margin-bottom:18px">'
                      f'<div style="font-weight:700;font-size:15px;color:{color}">{label}</div>'
                      f'<div style="color:#8a9099;font-size:12px;margin:2px 0 2px">{sub}</div>'
@@ -294,12 +354,14 @@ def build_messages(asof, groups):
 def main():
     if os.environ.get("ALERT_TEST") == "true":   # 仅当手动勾选 test 框时：发样式预览，不做实际检测
         print("【测试模式】ALERT_TEST=true → 只发样式预览邮件，未做任何实际信号检测")
-        sample = [("strong", [("MCD", "麦当劳", "RSI(14) 18.5 &lt;20 极端超卖 · 5年+2年窗口都触发｜本标的过去五年回溯14次·涨率 5日100% / 10日86% / 20日100%")]),
-                  ("buy", [("NEE", "新纪元", "RSI(14) 29.0 &lt;30 深度超卖 · 2年窗口｜本标的近两年回溯8次·涨率 5日88% / 10日100% / 20日88%"),
-                           ("META", "Meta", "破 200 日布林下轨(深度支撑) · 5年窗口｜本标的过去五年回溯4次·涨率 5日100% / 10日100% / 20日100%"),
-                           ("GEV", "GE Vernova", "破 50 日布林下轨 · 5年+2年窗口都触发｜本标的自2024年回溯7次·涨率 5日86% / 10日86% / 20日86%｜ℹ️财报数据仅到2026-04-22(91天前)，可能刚发新财报未入库，请核对是否财报暴雷"),
-                           ("AVGO", "博通", "RSI(14) 25.0 &lt;28 深度超卖 · 5年窗口｜本标的过去五年回溯6次·涨率 5日100% / 10日100% / 20日100%｜⚠️财报暴雷坑(距财报6天·当日-9%·历史62%,慎接飞刀)")]),
-                  ("sell", [("GS", "高盛", "PE分位 98·RSI(14) 73")])]
+        _mcd_d = [["2024-08-05", 271.6, -0.052, 19.8, 0.03, 0.06, 0.09], ["2025-04-07", 279.0, -0.031, 18.5, 0.08, 0.11, 0.14]]
+        _tsla_d = [["2026-04-06", 352.82, -0.022, 36.5, -0.001, 0.112, 0.112], ["2026-04-08", 343.25, -0.010, 33.7, 0.142, 0.129, 0.162],
+                   ["2026-04-13", 352.42, 0.010, 39.2, 0.114, 0.074, 0.263], ["2026-07-23", 321.34, -0.141, 29.4, None, None, None]]
+        sample = [("strong", [("MCD", "麦当劳", "RSI(14) 18.5 &lt;20 极端超卖 · 5年+2年窗口都触发｜本标的过去五年回溯14次·涨率 5日100% / 10日86% / 20日100%", _mcd_d)]),
+                  ("buy", [("TSLA", "特斯拉", "破 150 日布林下轨 · 2年窗口｜本标的近两年回溯7次·涨率 5日83% / 10日100% / 20日100%", _tsla_d),
+                           ("META", "Meta", "破 200 日布林下轨(深度支撑) · 5年窗口｜本标的过去五年回溯4次·涨率 5日100% / 10日100% / 20日100%", []),
+                           ("AVGO", "博通", "RSI(14) 25.0 &lt;28 深度超卖 · 5年窗口｜本标的过去五年回溯6次·涨率 5日100% / 10日100% / 20日100%｜⚠️财报暴雷坑(距财报6天·当日-9%·历史62%,慎接飞刀)", [])]),
+                  ("sell", [("GS", "高盛", "PE分位 98·RSI(14) 73", [])])]
         md, html = build_messages("示例数据（这是测试预览，非真实信号）", sample)
         notify("⚡自选股机会信号提示 · 样式预览（测试）", md, html)
         return
@@ -344,13 +406,14 @@ def main():
                     continue
                 wins = (["5年"] if k5 else []) + (["2年"] if k2 else [])
                 wlabel = "5年+2年窗口都触发" if len(wins) == 2 else f"{wins[0]}窗口"
-                if k5:                   # 主套优先 5年(更硬)：信号内容+个股率用 5年那套
-                    bucket.append((tk, name, sig_desc(k5, cfg5, rsi, ts5[k5], since, lm, "5y", wlabel)))
+                if k5:                   # 主套优先 5年(更硬)：信号内容+个股率+明细表用 5年那套
+                    desc, kind, w = sig_desc(k5, cfg5, rsi, ts5[k5], since, lm, "5y", wlabel), k5, "5y"
                 else:
-                    bucket.append((tk, name, sig_desc(k2, cfg2, rsi, ts2[k2], None, lm, "2y", wlabel)))
+                    desc, kind, w = sig_desc(k2, cfg2, rsi, ts2[k2], None, lm, "2y", wlabel), k2, "2y"
+                bucket.append((tk, name, desc, extract_detail(m, kind, w)))
                 break                    # 强买入触发就不再判买入
         if tk not in HI_VOL and pe is not None and pe > 95 and rsi > 70:   # 卖出/减仓参考(非高波动股)
-            sell.append((tk, name, f"PE分位 {pe:.0f}·RSI(14) {rsi:.1f}"))
+            sell.append((tk, name, f"PE分位 {pe:.0f}·RSI(14) {rsi:.1f}", []))
 
     if n_fail > 3:   # 拉取失败过多(可能云端限速)：明确告警，绝不静默漏报
         warn = f"本次 {n_fail}/{len(bd.UNIVERSE)} 个标的数据拉取失败(疑似限速)，未完整检测、可能漏报信号，请留意。"
