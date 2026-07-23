@@ -205,8 +205,8 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
         return [n] + [round((fwd[h][mm] > 0).mean() * 100) for h in (5, 10, 20)]
 
     cfg5 = cfg2 = None
-    ts5 = tr5 = ts2 = tr2 = {}
-    masks5 = masks2 = {}
+    ts5, tr5, ts2, tr2 = {}, {}, {}, {}   # 必须各自独立 dict(别名会让 tr[k]=bool 覆盖 ts[k]=[N,...])
+    masks5, masks2 = {}, {}
     if cfg:
         cfg5, cfg2 = cfg["5y"], cfg["2y"]
         masks5, masks2 = signal_masks(df, cfg5), signal_masks(df, cfg2)
@@ -388,6 +388,7 @@ def main():
             continue
         asof, rsi, pe = m["date"], m["rsi"], m["pe_pctile"]
         name = NAMES.get(tk, "")
+        since = m.get("since")           # 数据起始年(新股不足5年时)，供 sig_desc 的 5年个股率文案
         lm = landmine_tag(m)             # 事件闸门：这次下跌若是财报暴雷砸的，给买入信号挂红旗
         # 双窗口判定：强买入(级别 s)优先于买入(级别 b)；同级别里 5年/2年任一触发即出，标注是哪套
         cfg5, cfg2 = m.get("cfg5"), m.get("cfg2")
