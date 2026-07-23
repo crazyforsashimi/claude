@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>大机会逻辑总结 · 分组信号 + 事件闸门</title>
+<title>大机会逻辑总结 · per-ticker 信号 + 事件闸门</title>
 <style>
   :root{
     --bg:#eef1f4; --card:#ffffff; --ink:#1a1d21; --muted:#69707a; --line:#e4e8ec;
@@ -94,76 +94,38 @@
 <body>
 <div class="wrap">
   <p class="eyebrow">大机会提示逻辑</p>
-  <h1>分组信号系统 · Tier1 + Tier2 + 事件闸门</h1>
-  <p class="lede">三层结构:<b style="color:var(--ink)">Tier1</b> 按波动率把标的分成稳健/动量两组(赚钱机制不同——均值回归 vs 趋势跟随);<b style="color:var(--ink)">Tier2</b> 再在动量组内按标的性格分三档,因为同一个"破下轨"信号在不同标的上<b style="color:var(--ink)">天差地别</b>(NVDA 破下轨后涨 90%,NET 破下轨后跌 6.6%);<b style="color:var(--ink)">事件闸门</b>再给所有买入信号叠一层过滤,避开财报暴雷砸的坑。每条规则都由 edge_scanner 对 31 标的近 5 年回溯选出。</p>
+  <h1>per-ticker 信号系统 · RSI + 布林校准 + 事件闸门</h1>
+  <p class="lede">不用统一阈值,而是<b style="color:var(--ink)">每只标的用自己近5年数据校准</b>最适合它的 <b style="color:var(--ink)">RSI 阈值</b> 与 <b style="color:var(--ink)">布林下轨周期</b>——因为固定 RSI&lt;20/25、固定100布林对不同标的效果<b style="color:var(--ink)">天差地别</b>(强趋势股 RSI 碰不到 20、100布林胜率塌)。判定用<b style="color:var(--ink)">原始胜率</b>而非重罚小样本的 Wilson 下界,理念是 <b style="color:var(--ink)">N 小 = 极端罕见 = 大机会</b>。事件闸门再给买入信号叠一层过滤,避开财报暴雷坑。</p>
 
   <div class="split">
-    <b>分组维度:年化波动率 40%</b>　·　稳健组 18 支(含 ETF)　·　动量组 13 支<br>
-    <span class="names">动量组(HI_VOL):LEU · COIN · NET · SNOW · TSLA · AMD · GEV · MU · NVDA · BABA · CEG · VST · AVGO</span>
+    <b>26 只有信号档</b>(RSI+布林双源 / 仅RSI / 仅布林)　·　<b>5 只无信号</b>诚实留空<br>
+    <span class="names">无信号:AMD · BABA · COIN · MS · TSM(RSI/布林任何参数都不达标)</span>
   </div>
 
-  <!-- 稳健组 -->
+  <!-- 校准标准 -->
   <section class="card">
     <header>
-      <h2>🛡️ 稳健组 · 均值回归</h2>
-      <span class="sub">非 HI_VOL · 18 支 · AAPL/微软/金融/BRK/麦当劳…　超卖必反弹</span>
+      <h2>🎯 校准标准 · 原始胜率(多持有期达标)</h2>
+      <span class="sub">对31只一视同仁 · 候选 RSI 14–30 / 布林 20–200日 · 触发后看 5/10/20 日方向胜率</span>
     </header>
     <div class="rules">
       <div class="rule">
-        <div class="top"><span class="tag buy-strong">强买入 ★</span><span class="cond">RSI(14) &lt; 20</span></div>
-        <div class="stats"><span>涨 <b>88%</b></span><span>保守下界 <b>70%</b></span><span>盈亏比 <b>3.3</b></span></div>
+        <div class="top"><span class="tag buy-strong">强买入 ★</span><span class="cond">5/10/20 日里 ≥2 个 &gt;95% 且 三个都 &gt;55%</span></div>
+        <div class="stats"><span>极端罕见(N 常个位数)</span><span>反弹最猛</span></div>
+        <div class="note">RSI 极端超卖 或 破深周期布林下轨。<b>样本少不是问题</b>——它本身说明这是该标的极罕见的深坑。第三窗口 &gt;55% 地板滤掉"两高一塌"(如 LLY 曾 100/25/100 被剔)。</div>
       </div>
       <div class="rule">
-        <div class="top"><span class="tag buy">买入</span><span class="cond">RSI(14) &lt; 25　<span style="color:var(--muted);font-weight:500">或</span>　破 100 日布林下轨</span></div>
-        <div class="stats"><span>RSI 路径 涨 <b>86%</b> / 下界 <b>79%</b> / 盈亏比 <b>10.2</b></span><span>大支撑路径 涨 <b>67%</b> / 下界 <b>64%</b></span></div>
-        <div class="note">RSI 优先;破 100 日布林补"深度回调但 RSI 还没到 25"的机会——两信号几乎不重叠(仅 11%)、是纯增量。<b>100 日布林是稳健组 + 动量软件股通用的大级别支撑。</b></div>
+        <div class="top"><span class="tag buy">买入</span><span class="cond">5/10/20 日里 ≥2 个 &gt;80% 且 三个都 &gt;55%</span></div>
+        <div class="stats"><span>较宽阈值 / 较小周期</span><span>触发多些</span></div>
+        <div class="note">强买入(RSI极端/破深周期布林)优先,未触发再看买入档。<b>各标的阈值/周期不同</b>:如 AMZN 买入 RSI&lt;28、NVDA 破150日布林、MCD 强买入 RSI&lt;20、META 强买入破200日布林。</div>
       </div>
       <div class="rule">
         <div class="top"><span class="tag sell">卖出</span><span class="cond">PE五年分位 &gt; 95 且 RSI(14) &gt; 70</span></div>
-        <div class="stats"><span>金融股极准 <b>GS 76% / MS 74% / JPM 78%</b></span></div>
-        <div class="note">高估值 + 超买。仅供止盈参考,<b>不代表做空</b>(做空超买仍是负期望)。</div>
+        <div class="stats"><span>仅非高波动股 · 全局统一(不 per-ticker)</span></div>
+        <div class="note">高估值 + 超买,止盈参考、<b>不代表做空</b>(做空超买是负期望)。</div>
       </div>
     </div>
-  </section>
-
-  <!-- 动量组 · RSI 档 + 破轨三档 -->
-  <section class="card">
-    <header>
-      <h2>🚀 动量组 · RSI 极端超卖 + 破轨信号</h2>
-      <span class="sub">HI_VOL · 13 支 · RSI 深度超卖(罕见=极端)全组共用、优先;其次按性格各自破轨</span>
-    </header>
-    <div class="rules">
-      <div class="rule">
-        <div class="top"><span class="tag buy-strong">强买入 ★</span><span class="cond">RSI(14) &lt; 20（全组共用）</span></div>
-        <div class="stats"><span>整组 12 次</span><span>20日涨 <b>83%</b></span><span>下界 <b>55%</b></span><span>均值 <b>+16.8%</b></span></div>
-      </div>
-      <div class="rule">
-        <div class="top"><span class="tag buy">买入</span><span class="cond">RSI(14) &lt; 25（全组共用）</span></div>
-        <div class="stats"><span>整组 75 次</span><span>20日涨 <b>67%</b></span><span>下界 <b>55%</b></span><span>均值 <b>+13.1%</b></span></div>
-        <div class="note">动量股极少到 RSI 绝对超卖(GEV/NVDA/VST 近5年 <b>0 次</b>)——一旦跌到=极端行情,反弹比破下轨更猛(<b>+13~17% vs +8.8%</b>)。样本主要来自 BABA/TSLA/COIN。<b>之前误判为"样本太少不设档",实测扩到全13只后 75 次、下界 55% 可交易。</b>RSI 未超卖时,才看下面各自的破轨信号。</div>
-      </div>
-    </div>
-    <div class="tiers" style="margin-top:14px">
-      <div class="tier">
-        <div class="top"><span class="tag buy">趋势回调组</span></div>
-        <div class="who">半导体 / AI 硬件 / 电力(8)<br>NVDA · AVGO · MU · AMD · GEV · CEG · LEU · VST</div>
-        <div class="tsig">RSI 未超卖时:破日线下轨 且 价在 MA200 上</div>
-        <div class="tstat">涨 65% · 下界 59% · 盈亏比 2.2</div>
-      </div>
-      <div class="tier">
-        <div class="top"><span class="tag buy">大级别支撑组</span></div>
-        <div class="who">高波动软件 / 中概(3)<br>SNOW · TSLA · BABA</div>
-        <div class="tsig">RSI 未超卖时:破 100 日布林下轨(≈20周级)</div>
-        <div class="tstat">涨 71-74% · 下界 57-60%</div>
-      </div>
-      <div class="tier">
-        <div class="top"><span class="tag buy">仅 RSI 档</span></div>
-        <div class="who">软件 / 加密(2)<br>NET · COIN</div>
-        <div class="tsig">破布林无效,只在 RSI&lt;20/25 时出信号</div>
-        <div class="tstat">破布林 48-49%(无效)→ RSI 有效(20日 67%)</div>
-      </div>
-    </div>
-    <div class="note" style="margin-top:12px">RSI 极端超卖档<b>全组共用</b>(含原"无信号"的 NET/COIN——破布林无效但深度超卖有效,由此救活)。动量组仍不出「卖出」(超买后倾向续涨,择顶=负期望)。</div>
+    <div class="note" style="margin-top:12px"><b>被数据淘汰的:</b>固定 RSI&lt;20/25(强趋势股碰不到) · 固定100日布林(多数标的胜率塌) · dip 破日线下轨+MA200(新标准 8 只无一达标) · 均线支撑(下穿/触及两种定义都仅 1-2 只达标)。数据说了算、不硬留。</div>
   </section>
 
   <!-- 事件闸门 -->
@@ -215,12 +177,12 @@
   </div>
 
   <div class="foot">
-    <b>数据来源</b>　<code>edge_scanner.py</code> 对 31 标的近 5 年日线分组回溯,按 <b>Wilson 95% 置信下界</b>排序、剔除小样本假信号(涨=触发后 20 日上涨概率;盈亏比取三重障碍口径)。RSI 为日线 14 周期(Wilder 平滑)。<br>
-    <b>个股回溯率(提示层)</b>　每条信号除分组整体率外,附该标的自己的历史回溯,且给 <b>5日 / 10日 / 20日 三个持有期</b>的方向胜率(同一批信号、以20日valid为准)——看反弹节奏而非只看终点。如 GEV 破下轨:5日70% → <b>10日40%(探底期、接飞刀最痛)</b> → 20日100%,提示要扛得住中间回撤;AAPL RSI&lt;25 短期100%但20日回落到78%。N 小甚至=1 也保留:由 N 自证其罕见=极端,不冒充 edge。<br>
+    <b>数据来源</b>　<code>gen_signal_config.py</code> 对 31 标的近 5 年日线 per-ticker 校准 RSI 阈值 + 布林周期,判定用<b>原始胜率(多持有期达标)</b>而非 Wilson 下界(涨=触发后 N 日上涨概率)。RSI 为日线 14 周期(Wilder 平滑)。<br>
+    <b>个股回溯率(悬浮/邮件显示)</b>　每条信号附该标的自己的历史回溯,给 <b>5日 / 10日 / 20日 三个持有期</b>的方向胜率(同一批信号、以20日valid为准)——看反弹节奏而非只看终点。如 GEV 破50日布林:先反弹再探底再回正;MCD 强买入 100/100/100。N 小甚至=1 也保留:由 N 自证其罕见=极端,不冒充 edge。<br>
     <b>事件闸门数据源</b>　财报公布日取 <code>/vX/reference/financials</code> 的 <code>filing_date</code>——季报(10-Q)精确,年报季(10-K)常缺 → 用 <code>end_date+50 天</code>近似(标"近似");单日跌幅用日线现算、100% 可靠。云端限速拉不到财报时标"财报日期未知"、不拦买入。<br>
     <b>已知盲区(财报当天)</b>　财报当天/次日,新季 <code>filing_date</code> 还没进数据源(T+1~数天才入库),此刻最该警示的"财报当天暴雷"反而认不出——而 Starter 档拿不到前瞻财报日历(Benzinga 端点 403)。**不用"当天大阴线"兜底**:回测显示纯大阴线抄底反而更准(单日 −8% 达 80%),只有"财报造成的"大阴线才有毒,兜底会误伤好机会。折中:当距最近已知财报 &gt;85 天(下季可能已发未入库)且触发买入时,附**中性提示 ℹ️「财报数据仅到 X,请自行核对是否刚发财报」**——不标坑、不改判断、不误伤,只提醒你多看一眼。<br>
     <b>落地位置</b>　① 选股工具「机会」列(悬停看依据,踩坑标 ⚠️);② 每日邮件告警(每交易日盘中 3 次扫描,有触发才推,买入信号带 ⚠️ 财报暴雷坑标注)。工具 / 告警 / 回测三处口径完全一致。<br>
-    <b>方法论</b>　Tier1(横截面分组) + Tier2(组内按性格分档) + 事件闸门都靠数据回溯、非拍脑袋。更细的单标的阈值微调,因单只样本量太少、易过拟合,暂不深入。
+    <b>方法论</b>　per-ticker 阈值/周期 + 事件闸门都靠数据回溯、非拍脑袋。<b>⚠️ 阈值在同份 5 年数据上选 + 评估,有过拟合乐观偏差</b>——小样本高胜率作"极端信号提示"、别当可交易 edge,实盘打折看待。
   </div>
 </div>
 </body>
