@@ -35,12 +35,18 @@ def main():
     d["std100"] = d.groupby("ticker")["close"].transform(lambda s: s.rolling(100).std())
     d["b100"] = d.close <= d.ma100 - 2 * d.std100
 
+    now = pd.Timestamp.today()
+
     def stat(tk, mask):
         s = d[(d.ticker == tk) & mask.fillna(False)]
         n = len(s)
         if not n:
             return [0, None, None, None]
         return [n] + [round((s[f"fwd{h}"] > 0).mean() * 100) for h in (5, 10, 20)]
+
+    def since_year(tk):     # 数据起始年：新股(不足4.5年)存实际起始年，否则 None(→ 显示"过去五年")
+        start = pd.to_datetime(d[d.ticker == tk]["date"].min())
+        return int(start.year) if (now - start).days / 365.25 < 4.5 else None
 
     sigs = {
         "rsi20": d.rsi14 < 20,
@@ -64,6 +70,7 @@ def main():
             e["rsi25"] = stat(tk, sigs["rsi25"])
             e["b100"] = stat(tk, sigs["b100"])
         if e:
+            e["_y"] = since_year(tk)     # 起始年(新股)或 None
             out[tk] = e
 
     if len(out) < 25:   # 正常应 29 个标的；不足说明上游数据残缺，拒绝写表以免覆盖好数据

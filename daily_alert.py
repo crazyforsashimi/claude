@@ -27,12 +27,14 @@ HI_VOL = {"LEU", "COIN", "NET", "SNOW", "TSLA", "AMD", "GEV", "MU", "NVDA",
 MOM_DIP = {"NVDA", "AVGO", "MU", "AMD", "GEV", "CEG", "LEU", "VST"}
 MOM_BIG = {"SNOW", "TSLA", "BABA"}
 
-def fmt_tstat(s):
-    """格式化实时算出的个股回溯 [N, 5日涨率%, 10日, 20日]。N 小(甚至=1)也保留：反映该信号在该股极罕见=极端。"""
+def fmt_tstat(s, since=None):
+    """格式化实时算出的个股回溯 [N, 5日涨率%, 10日, 20日]。since=数据起始年(新股不足5年时显示),否则"过去五年"。
+    N 小(甚至=1)也保留：反映该信号在该股极罕见=极端。"""
+    period = f"自{since}年" if since else "过去五年"
     if not s or s[0] == 0:
-        return "本标的过去五年0次(极罕见)"
+        return f"本标的{period}0次(极罕见)"
     n, r5, r10, r20 = s
-    return f"本标的过去五年回溯{n}次·涨率 5日{r5}% / 10日{r10}% / 20日{r20}%"
+    return f"本标的{period}回溯{n}次·涨率 5日{r5}% / 10日{r10}% / 20日{r20}%"
 
 
 def detect_earnings_landmine(df, fin):
@@ -165,12 +167,14 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
         "b100": pstat(c <= m100s - 2 * s100s),
         "dip": pstat((df["boll_pctb"] < 0) & (df["close"] > df["ma200"])),
     }
+    start_dt = pd.to_datetime(df["date"].iloc[0])     # 数据起始年：新股(不足4.5年)显示实际起始年，否则用"过去五年"
+    since = int(start_dt.year) if (pd.Timestamp.today() - start_dt).days / 365.25 < 4.5 else None
     return {"date": str(last["date"]), "rsi": last["rsi14"],
             "pe_pctile": last.get("pe_percentile_causal"),
             "pctB": last.get("boll_pctb"),
             "above_ma200": bool(pd.notna(ma200) and last["close"] > ma200),
             "below100": bool(pd.notna(m100s.iloc[-1]) and last["close"] <= m100s.iloc[-1] - 2 * s100s.iloc[-1]),
-            "tstats": tstats, "landmine": landmine}
+            "tstats": tstats, "landmine": landmine, "since": since}
 
 
 # 每组的标题/说明/主色(买入绿、卖出橙)
@@ -286,23 +290,23 @@ def main():
         lm = landmine_tag(m)             # 事件闸门：这次下跌若是财报暴雷砸的，给买入信号挂红旗
         if tk in HI_VOL:                 # 动量组：RSI 极端超卖优先(罕见=极端、反弹最猛)，其次各自破轨信号
             if rsi < 20:                # 强买入：动量组整体 12次/20日83%/下界55%/均值+16.8%
-                strong_buy.append((tk, name, f"RSI(14) {rsi:.1f} 极端超卖｜{fmt_tstat(m['tstats']['rsi20'])}{lm}"))
+                strong_buy.append((tk, name, f"RSI(14) {rsi:.1f} 极端超卖｜{fmt_tstat(m['tstats']['rsi20'], m.get('since'))}{lm}"))
             elif rsi < 25:              # 买入：动量组整体 75次/20日67%/下界55%/均值+13.1%
-                buy.append((tk, name, f"RSI(14) {rsi:.1f} 深度超卖｜{fmt_tstat(m['tstats']['rsi25'])}{lm}"))
+                buy.append((tk, name, f"RSI(14) {rsi:.1f} 深度超卖｜{fmt_tstat(m['tstats']['rsi25'], m.get('since'))}{lm}"))
             elif tk in MOM_DIP:         # RSI 未超卖：趋势回调 破日线下轨且价 MA200 上
                 if m["pctB"] is not None and m["pctB"] < 0 and m["above_ma200"]:
-                    buy.append((tk, name, f"破布林下轨·价在MA200上｜{fmt_tstat(m['tstats']['dip'])}{lm}"))
+                    buy.append((tk, name, f"破布林下轨·价在MA200上｜{fmt_tstat(m['tstats']['dip'], m.get('since'))}{lm}"))
             elif tk in MOM_BIG:         # RSI 未超卖：大级别支撑 破 100 日布林下轨
                 if m["below100"]:
-                    buy.append((tk, name, f"破100日布林下轨(大支撑)｜{fmt_tstat(m['tstats']['b100'])}{lm}"))
+                    buy.append((tk, name, f"破100日布林下轨(大支撑)｜{fmt_tstat(m['tstats']['b100'], m.get('since'))}{lm}"))
             # NET/COIN 现在有 RSI 档(破布林无效但深度超卖有效)；RSI 未超卖时无破轨信号
         else:                            # 稳健组：RSI(14) 超卖 或 破100日布林(大级别支撑)
             if rsi < 20:
-                strong_buy.append((tk, name, f"RSI(14) {rsi:.1f}｜{fmt_tstat(m['tstats']['rsi20'])}{lm}"))
+                strong_buy.append((tk, name, f"RSI(14) {rsi:.1f}｜{fmt_tstat(m['tstats']['rsi20'], m.get('since'))}{lm}"))
             elif rsi < 25:
-                buy.append((tk, name, f"RSI(14) {rsi:.1f}｜{fmt_tstat(m['tstats']['rsi25'])}{lm}"))
+                buy.append((tk, name, f"RSI(14) {rsi:.1f}｜{fmt_tstat(m['tstats']['rsi25'], m.get('since'))}{lm}"))
             elif m["below100"]:          # RSI 未触发但破100日布林下轨
-                buy.append((tk, name, f"破100日布林下轨(大支撑)｜{fmt_tstat(m['tstats']['b100'])}{lm}"))
+                buy.append((tk, name, f"破100日布林下轨(大支撑)｜{fmt_tstat(m['tstats']['b100'], m.get('since'))}{lm}"))
             if pe is not None and pe > 95 and rsi > 70:   # 卖出仅稳健组
                 sell.append((tk, name, f"PE分位 {pe:.0f}·RSI(14) {rsi:.1f}"))
 
