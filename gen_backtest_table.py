@@ -56,22 +56,20 @@ def main():
                 round(lb * 100), s["fwd20"].mean() * 100)
 
     def sigs_for(tk):
-        """该标的的信号档：RSI 阈值取 per-ticker 校准值(无则默认 强20/买25) + 破布林(按分组)。
-        强买入必须严于买入：无校准强买入档时，默认20 仅当严于买入阈值才用，否则该标的不出强买入。"""
-        thr = RSI_THR.get(tk, {})
-        by_t = thr.get("buy") or 25
-        st_t = thr.get("strong")
-        if st_t is None and 20 < by_t:
-            st_t = 20
+        """该标的的信号档：仅当 per-ticker 校准达标才出 RSI 档(不达标的标的 RSI 任何阈值都不满足
+        胜率标准→不出 RSI、只靠破布林) + 破布林(按分组)。"""
+        thr = RSI_THR.get(tk)
         out = []
-        if st_t is not None:
-            out.append((f"强买入 · RSI(14)&lt;{st_t}", "strong", d.rsi14 < st_t))
-        out.append((f"买入 · RSI(14)&lt;{by_t}", "buy", d.rsi14 < by_t))
+        if thr:                               # 有校准档才出 RSI 信号
+            if thr.get("strong"):
+                out.append((f"强买入 · RSI(14)&lt;{thr['strong']}", "strong", d.rsi14 < thr["strong"]))
+            if thr.get("buy"):
+                out.append((f"买入 · RSI(14)&lt;{thr['buy']}", "buy", d.rsi14 < thr["buy"]))
         if tk in MOM_DIP:
             out.append(("买入 · 破下轨且价MA200上", "buy", d.dipmask))
         elif tk in MOM_BIG or tk not in HI_VOL:
             out.append(("买入 · 破100日布林下轨", "buy", d.b100mask))
-        return out                            # NET/COIN(HI_VOL非DIP非BIG)：无破布林，仅 RSI
+        return out                            # 无校准且非稳健/大支撑(如COIN)→无破布林→无信号
 
     GROUPS = [
         ("🛡️ 稳健组", "均值回归 · 非高波动 · RSI 阈值已 per-ticker 校准(⚙)", "#12924f",
