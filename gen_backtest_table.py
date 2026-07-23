@@ -39,12 +39,12 @@ def main():
     d = pd.read_csv(DATA).sort_values(["ticker", "date"]).reset_index(drop=True)
     for h in (5, 10, 20):
         d[f"fwd{h}"] = d.groupby("ticker")["close"].shift(-h) / d["close"] - 1
+    CFG = json.loads((ROOT / "signal_config.json").read_text(encoding="utf-8"))
+    for N in {cfg["boll"][k] for cfg in CFG.values() for k in ("s", "b") if cfg["boll"][k]}:
+        ma = d.groupby("ticker")["close"].transform(lambda s: s.rolling(N).mean())
+        sd = d.groupby("ticker")["close"].transform(lambda s: s.rolling(N).std())
+        d[f"boll{N}"] = d.close <= ma - 2 * sd
     d = d[d["fwd20"].notna()].copy()
-    d["ma100"] = d.groupby("ticker")["close"].transform(lambda s: s.rolling(100).mean())
-    d["std100"] = d.groupby("ticker")["close"].transform(lambda s: s.rolling(100).std())
-    d["b100mask"] = d.close <= d.ma100 - 2 * d.std100
-    d["dipmask"] = (d.boll_pctb < 0) & (d.px_ma200 > 0)
-    RSI_THR = json.loads((ROOT / "output" / "rsi_thresholds.json").read_text(encoding="utf-8"))
 
     def stat(tk, mask):
         s = d[(d.ticker == tk) & mask.fillna(False)]
@@ -56,30 +56,32 @@ def main():
                 round(lb * 100), s["fwd20"].mean() * 100)
 
     def sigs_for(tk):
-        """该标的的信号档：仅当 per-ticker 校准达标才出 RSI 档(不达标的标的 RSI 任何阈值都不满足
-        胜率标准→不出 RSI、只靠破布林) + 破布林(按分组)。"""
-        thr = RSI_THR.get(tk)
+        """该标的的信号档：per-ticker 校准的 RSI 阈值 + 布林周期(signal_config)。无档标的返回空→无信号。"""
+        cfg = CFG.get(tk)
         out = []
-        if thr:                               # 有校准档才出 RSI 信号
-            if thr.get("strong"):
-                out.append((f"强买入 · RSI(14)&lt;{thr['strong']}", "strong", d.rsi14 < thr["strong"]))
-            if thr.get("buy"):
-                out.append((f"买入 · RSI(14)&lt;{thr['buy']}", "buy", d.rsi14 < thr["buy"]))
-        if tk in MOM_DIP:
-            out.append(("买入 · 破下轨且价MA200上", "buy", d.dipmask))
-        elif tk in MOM_BIG or tk not in HI_VOL:
-            out.append(("买入 · 破100日布林下轨", "buy", d.b100mask))
-        return out                            # 无校准且非稳健/大支撑(如COIN)→无破布林→无信号
+        if cfg:
+            if cfg["rsi"]["s"]:
+                out.append((f"强买入 · RSI(14)&lt;{cfg['rsi']['s']}", "strong", d.rsi14 < cfg["rsi"]["s"]))
+            if cfg["rsi"]["b"]:
+                out.append((f"买入 · RSI(14)&lt;{cfg['rsi']['b']}", "buy", d.rsi14 < cfg["rsi"]["b"]))
+            if cfg["boll"]["s"]:
+                out.append((f"强买入 · 破 {cfg['boll']['s']} 日布林下轨", "strong", d[f"boll{cfg['boll']['s']}"]))
+            if cfg["boll"]["b"]:
+                out.append((f"买入 · 破 {cfg['boll']['b']} 日布林下轨", "buy", d[f"boll{cfg['boll']['b']}"]))
+        return out
+
+    def src(tk):
+        cfg = CFG.get(tk)
+        if not cfg:
+            return 3
+        has_r = bool(cfg["rsi"]["s"] or cfg["rsi"]["b"])
+        has_b = bool(cfg["boll"]["s"] or cfg["boll"]["b"])
+        return 0 if (has_r and has_b) else (1 if has_r else 2)
 
     GROUPS = [
-        ("🛡️ 稳健组", "均值回归 · 非高波动 · RSI 阈值已 per-ticker 校准(⚙)", "#12924f",
-         [t for t in NAMES if t not in HI_VOL]),
-        ("🚀 趋势回调组", "半导体/AI硬件/电力 · RSI 超卖 或 破日线下轨且价MA200上", "#4f46e5",
-         [t for t in NAMES if t in MOM_DIP]),
-        ("🏛️ 大级别支撑组", "SNOW/TSLA/BABA · RSI 超卖 或 破100日布林", "#b45309",
-         [t for t in NAMES if t in MOM_BIG]),
-        ("⚡ 高波动·仅RSI", "NET/COIN · 破布林抄底无效，只在深度超卖时出信号", "#7c3aed",
-         [t for t in NAMES if t in HI_VOL and t not in MOM_DIP and t not in MOM_BIG]),
+        ("🎯 RSI + 布林 双源", "两类信号都有校准档", "#4f46e5", [t for t in NAMES if src(t) == 0]),
+        ("📉 仅 RSI 档", "RSI 阈值 per-ticker 校准", "#12924f", [t for t in NAMES if src(t) == 1]),
+        ("〽️ 仅布林档", "布林周期 per-ticker 校准", "#b45309", [t for t in NAMES if src(t) == 2]),
     ]
 
     def pct_td(v, n):
@@ -91,16 +93,15 @@ def main():
     for title, sub, color, tickers in GROUPS:
         rows = ""
         for tk in tickers:
-            calib = ' <span style="color:#7c3aed;font-weight:700" title="RSI阈值已per-ticker校准">⚙</span>' if tk in RSI_THR else ""
             entries = [(lab, tier, stat(tk, mask)) for lab, tier, mask in sigs_for(tk)]
             entries = [(lab, tier, s) for lab, tier, s in entries if s]     # 只列有触发的信号
             if not entries:
-                rows += (f'<tr><td class="tk">{tk}{calib}</td><td class="nm">{NAMES[tk]}</td>'
+                rows += (f'<tr><td class="tk">{tk}</td><td class="nm">{NAMES[tk]}</td>'
                          f'<td class="mut" colspan="7">近5年无触发</td></tr>')
                 continue
             for i, (lab, tier, s) in enumerate(entries):
                 n, r5, r10, r20, lb, avg20 = s
-                tkcell = (f'<td class="tk" rowspan="{len(entries)}">{tk}{calib}</td>'
+                tkcell = (f'<td class="tk" rowspan="{len(entries)}">{tk}</td>'
                           f'<td class="nm" rowspan="{len(entries)}">{NAMES[tk]}</td>') if i == 0 else ""
                 avgcls = "hi" if avg20 > 0 else "lo"
                 lbcls = "hi" if lb >= 60 else "mid" if lb >= 50 else "lo"
@@ -173,9 +174,9 @@ TEMPLATE = """<!doctype html>
 <div class="wrap">
   <p class="eyebrow">买入 / 强买入信号 · 历史回溯</p>
   <h1>31 标的 · 5 年触发次数与 5/10/20 日反弹概率</h1>
-  <p class="lede">按 <b>Tier2 分组</b>列出每个标的实际启用的买入/强买入信号:<b>触发次数</b> + 同一批信号在 <b>5日 / 10日 / 20日</b>三个持有期的<b>方向胜率</b>(信号日收盘 → N 个交易日后收盘,涨为对) + <b>20日 Wilson 下界</b>(重罚小样本的保守胜率、校准用的核心尺) + 20日平均收益。</p>
-  <p class="lede"><b>⚙ = RSI 阈值已 per-ticker 校准</b>:固定 RSI&lt;20/25 对强趋势股几乎不触发,故用每只 5 年数据定制阈值——<b>但只对"放宽后 Wilson 下界仍≥60%"的 10 只标的放宽</b>(如 CAT 买入 RSI&lt;30、AMZN RSI&lt;24),其余守默认 20/25、靠破布林兜底。强买入档要求更严(样本少、胜率≥90%)。<b>⚠️ 阈值在同份数据上选+评估,有过拟合乐观偏差,实盘打折看待。</b></p>
-  <p class="lede"><b>怎么读</b>:胜率/下界 <span style="color:var(--hi);font-weight:600">≥70/≥60 绿</span> / <span style="color:var(--mid);font-weight:600">中档琥珀</span> / <span style="color:var(--lo);font-weight:600">低 红</span>;触发次数 <b>&lt;5 的行半透明</b>——小样本,胜率再高也只作参考、别当 edge。</p>
+  <p class="lede"><b>per-ticker 信号校准</b>:每只标的用自己近5年数据,定制 <b>RSI 阈值</b> 和 <b>布林下轨周期</b>。判定用<b>原始胜率(多持有期达标)</b>——<b>强买入</b>:5/10/20日里 ≥2个&gt;95% 且 三个都&gt;55%;<b>买入</b>:≥2个&gt;80% 且 三个都&gt;55%。理念:<b>N 小=极端罕见=大机会</b>,不用重罚小样本的 Wilson 下界当门槛。26 只有档、按信号来源(RSI+布林/仅RSI/仅布林)分组;<b>5 只无信号(AMD/BABA/COIN/MS/TSM)诚实留空、不列</b>。</p>
+  <p class="lede">列含<b>触发次数 + 5/10/20日方向胜率 + 20日 Wilson 下界</b>(仅供参考,不是门槛) + 20日平均收益。固定100布林/dip(破日线下轨+MA200)/均线支撑经测试均不达标、已弃。<b>⚠️ 阈值在同份数据上选+评估,有过拟合乐观偏差,小样本高胜率作"极端信号提示"、别当可交易 edge,实盘打折。</b></p>
+  <p class="lede"><b>怎么读</b>:胜率/下界 <span style="color:var(--hi);font-weight:600">≥70/≥60 绿</span> / <span style="color:var(--mid);font-weight:600">中档琥珀</span> / <span style="color:var(--lo);font-weight:600">低 红</span>;触发次数 <b>&lt;5 的行半透明</b>——小样本、极端罕见,由 N 自证。</p>
   <p class="asof">数据截至 {{ASOF}} · 口径与工具/邮件/logic.html 完全一致</p>
   {{SECTIONS}}
   <div class="foot">

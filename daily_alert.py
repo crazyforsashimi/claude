@@ -12,6 +12,7 @@
   SMTP_HOST/PORT/USER/PASS/TO  选填，邮件推送
   至少配一个通知渠道。
 """
+import json
 import os
 import sys
 import time
@@ -20,12 +21,39 @@ import pandas as pd
 
 import build_dataset as bd   # 复用取数/指标/估值逻辑，口径一致
 
-# 与 index.html / edge_scanner 一致的高波动名单：这些标的不出卖出信号(超买后倾向续涨)
+# per-ticker 信号配置(RSI 阈值 + 布林周期)——gen_signal_config.py 校准生成，与工具 index.html 同源
+_CFG_PATH = os.path.join(os.path.dirname(__file__), "signal_config.json")
+SIGNAL_CFG = json.load(open(_CFG_PATH, encoding="utf-8")) if os.path.exists(_CFG_PATH) else {}
+# 高波动名单：这些标的不出卖出信号(超买后倾向续涨)
 HI_VOL = {"LEU", "COIN", "NET", "SNOW", "TSLA", "AMD", "GEV", "MU", "NVDA",
           "BABA", "CEG", "VST", "AVGO"}
-# 动量组 Tier2 三档：趋势回调(破日线下轨+ma200) / 大级别支撑(破100日布林) / 无信号(NET,COIN)
-MOM_DIP = {"NVDA", "AVGO", "MU", "AMD", "GEV", "CEG", "LEU", "VST"}
-MOM_BIG = {"SNOW", "TSLA", "BABA"}
+
+
+def signal_masks(df, cfg):
+    """给定该标的 df(含 close/rsi14) 与 cfg → 各档触发 mask(Series)。
+    档：rsi_s/rsi_b(RSI<校准阈值) · boll_s/boll_b(close 破 N日布林下轨 = MA_N − 2σ)。"""
+    c = df["close"]
+    out = {}
+    if cfg["rsi"]["s"]:
+        out["rsi_s"] = df["rsi14"] < cfg["rsi"]["s"]
+    if cfg["rsi"]["b"]:
+        out["rsi_b"] = df["rsi14"] < cfg["rsi"]["b"]
+    for key, N in (("boll_s", cfg["boll"]["s"]), ("boll_b", cfg["boll"]["b"])):
+        if N:
+            ma, sd = c.rolling(N).mean(), c.rolling(N).std()
+            out[key] = c <= ma - 2 * sd
+    return out
+
+
+def sig_desc(kind, cfg, rsi, ts, since, lm):
+    """信号文案(带个股率 + 财报标注)。kind ∈ rsi_s/rsi_b/boll_s/boll_b。"""
+    body = {
+        "rsi_s": lambda: f"RSI(14) {rsi:.1f} &lt;{cfg['rsi']['s']} 极端超卖",
+        "rsi_b": lambda: f"RSI(14) {rsi:.1f} &lt;{cfg['rsi']['b']} 深度超卖",
+        "boll_s": lambda: f"破 {cfg['boll']['s']} 日布林下轨(深度支撑)",
+        "boll_b": lambda: f"破 {cfg['boll']['b']} 日布林下轨",
+    }[kind]()
+    return f"{body}｜{fmt_tstat(ts, since)}{lm}"
 
 def fmt_tstat(s, since=None):
     """格式化实时算出的个股回溯 [N, 5日涨率%, 10日, 20日]。since=数据起始年(新股不足5年时显示),否则"过去五年"。
@@ -146,13 +174,11 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
     else:
         df = bd.add_fundamentals(df, pd.DataFrame())
     last = df.iloc[-1]
-    ma200 = last.get("ma200")
     c = df["close"]
-    m100s, s100s = c.rolling(100).mean(), c.rolling(100).std()
-    # 实时算该标的历史个股率[N, 5/10/20日涨率%]（用已拉的 5 年 df 当场算，永远最新、免维护）
-    # 同一批信号看不同持有期→看反弹节奏(如 GEV 破下轨:5日70%→10日40%探底→20日100%回正)
+    cfg = SIGNAL_CFG.get(tk)                       # 无 per-ticker 信号档 → 该标的不出买入/强买入
+    # per-ticker 各档：个股率[N,5/10/20涨%] + 当前是否触发(用已拉5年df当场算，永远最新)
     fwd = {h: c.shift(-h) / c - 1 for h in (5, 10, 20)}
-    valid = fwd[20].notna()                       # 同批：以能算满 20 日的信号为准
+    valid = fwd[20].notna()
 
     def pstat(mask):
         mm = (mask & valid).fillna(False)
@@ -161,35 +187,36 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
             return [0, None, None, None]
         return [n] + [round((fwd[h][mm] > 0).mean() * 100) for h in (5, 10, 20)]
 
-    tstats = {
-        "rsi20": pstat(df["rsi14"] < 20),
-        "rsi25": pstat(df["rsi14"] < 25),
-        "b100": pstat(c <= m100s - 2 * s100s),
-        "dip": pstat((df["boll_pctb"] < 0) & (df["close"] > df["ma200"])),
-    }
-    start_dt = pd.to_datetime(df["date"].iloc[0])     # 数据起始年：新股(不足4.5年)显示实际起始年，否则用"过去五年"
+    tstats, trig = {}, {}
+    if cfg:
+        for kind, mask in signal_masks(df, cfg).items():
+            tstats[kind] = pstat(mask)
+            trig[kind] = bool(mask.iloc[-1])
+    start_dt = pd.to_datetime(df["date"].iloc[0])     # 数据起始年：新股(不足4.5年)显示实际起始年
     since = int(start_dt.year) if (pd.Timestamp.today() - start_dt).days / 365.25 < 4.5 else None
-    return {"date": str(last["date"]), "rsi": last["rsi14"],
+    return {"date": str(last["date"]), "rsi": last["rsi14"], "cfg": cfg,
             "pe_pctile": last.get("pe_percentile_causal"),
-            "pctB": last.get("boll_pctb"),
-            "above_ma200": bool(pd.notna(ma200) and last["close"] > ma200),
-            "below100": bool(pd.notna(m100s.iloc[-1]) and last["close"] <= m100s.iloc[-1] - 2 * s100s.iloc[-1]),
-            "tstats": tstats, "landmine": landmine, "since": since}
+            "tstats": tstats, "trig": trig, "landmine": landmine, "since": since}
 
 
 # 每组的标题/说明/主色(买入绿、卖出橙)
 GROUP_META = {
-    "strong": ("🟢 强买入", "稳健股 RSI(14)&lt;20 极端超卖 · 回溯涨88% · 下界70%", "#12924f"),
-    "buy":    ("🟢 买入",   "深度超卖抄底信号 · 各标的所属分组见标签", "#12924f"),
-    "sell":   ("🟠 卖出/减仓参考", "PE五年分位&gt;95 且 RSI(14)&gt;70 · 仅稳健股 · 非做空", "#b7791f"),
+    "strong": ("🟢 强买入", "极端超卖 · RSI/布林下轨(各标的 per-ticker 校准阈值/周期)", "#12924f"),
+    "buy":    ("🟢 买入",   "深度超卖抄底 · 各标的校准的 RSI 阈值 / 布林周期", "#12924f"),
+    "sell":   ("🟠 卖出/减仓参考", "PE五年分位&gt;95 且 RSI(14)&gt;70 · 仅非高波动股 · 非做空", "#b7791f"),
 }
 
 
 def group_label(tk):
-    """标的所属分组(与 index.html/logic.html 一致) → (标签文字, 背景色, 文字色)。"""
-    if tk in MOM_DIP:  return "趋势回调组", "#eef2ff", "#4f46e5"
-    if tk in MOM_BIG:  return "大级别支撑组", "#fef3c7", "#b45309"
-    return "稳健组", "#f1f3f6", "#5a6270"
+    """按 per-ticker 信号来源标注 → (标签文字, 背景色, 文字色)。"""
+    cfg = SIGNAL_CFG.get(tk, {})
+    has_rsi = bool(cfg.get("rsi", {}).get("s") or cfg.get("rsi", {}).get("b"))
+    has_boll = bool(cfg.get("boll", {}).get("s") or cfg.get("boll", {}).get("b"))
+    if has_rsi and has_boll:
+        return "RSI+布林", "#eef2ff", "#4f46e5"
+    if has_boll:
+        return "布林档", "#fef3c7", "#b45309"
+    return "RSI档", "#f1f3f6", "#5a6270"
 
 
 def _bullet_style(i, text, main_color):
@@ -255,11 +282,10 @@ def build_messages(asof, groups):
 def main():
     if os.environ.get("ALERT_TEST") == "true":   # 仅当手动勾选 test 框时：发样式预览，不做实际检测
         print("【测试模式】ALERT_TEST=true → 只发样式预览邮件，未做任何实际信号检测")
-        sample = [("strong", [("AAPL", "苹果", "RSI(14) 18.5｜本标的过去五年回溯1次·涨率 5日100% / 10日100% / 20日100%")]),
-                  ("buy", [("MSFT", "微软", "RSI(14) 23.1｜本标的过去五年回溯12次·涨率 5日75% / 10日83% / 20日86%"),
-                           ("GEV", "GE Vernova", "破布林下轨·价在MA200上｜本标的过去五年回溯10次·涨率 5日70% / 10日40% / 20日100%｜ℹ️财报数据仅到2026-04-22(91天前)，可能刚发新财报未入库，请核对是否财报暴雷"),
-                           ("MU", "美光", "RSI(14) 24.0｜本标的过去五年回溯5次·涨率 5日80% / 10日60% / 20日80%｜⚠️财报暴雷坑(距财报6天·当日-9%·历史62%,慎接飞刀)"),
-                           ("TSLA", "特斯拉", "破100日布林下轨(大支撑)｜本标的过去五年回溯47次·涨率 5日60% / 10日81% / 20日74%")]),
+        sample = [("strong", [("MCD", "麦当劳", "RSI(14) 18.5 &lt;20 极端超卖｜本标的过去五年回溯14次·涨率 5日100% / 10日86% / 20日100%")]),
+                  ("buy", [("META", "Meta", "破 200 日布林下轨(深度支撑)｜本标的过去五年回溯4次·涨率 5日100% / 10日100% / 20日100%"),
+                           ("GEV", "GE Vernova", "破 50 日布林下轨｜本标的自2024年回溯7次·涨率 5日86% / 10日86% / 20日86%｜ℹ️财报数据仅到2026-04-22(91天前)，可能刚发新财报未入库，请核对是否财报暴雷"),
+                           ("AVGO", "博通", "RSI(14) 25.0 &lt;28 深度超卖｜本标的过去五年回溯6次·涨率 5日100% / 10日100% / 20日100%｜⚠️财报暴雷坑(距财报6天·当日-9%·历史62%,慎接飞刀)")]),
                   ("sell", [("GS", "高盛", "PE分位 98·RSI(14) 73")])]
         md, html = build_messages("示例数据（这是测试预览，非真实信号）", sample)
         notify("⚡自选股机会信号提示 · 样式预览（测试）", md, html)
@@ -288,27 +314,18 @@ def main():
         asof, rsi, pe = m["date"], m["rsi"], m["pe_pctile"]
         name = NAMES.get(tk, "")
         lm = landmine_tag(m)             # 事件闸门：这次下跌若是财报暴雷砸的，给买入信号挂红旗
-        if tk in HI_VOL:                 # 动量组：RSI 极端超卖优先(罕见=极端、反弹最猛)，其次各自破轨信号
-            if rsi < 20:                # 强买入：动量组整体 12次/20日83%/下界55%/均值+16.8%
-                strong_buy.append((tk, name, f"RSI(14) {rsi:.1f} 极端超卖｜{fmt_tstat(m['tstats']['rsi20'], m.get('since'))}{lm}"))
-            elif rsi < 25:              # 买入：动量组整体 75次/20日67%/下界55%/均值+13.1%
-                buy.append((tk, name, f"RSI(14) {rsi:.1f} 深度超卖｜{fmt_tstat(m['tstats']['rsi25'], m.get('since'))}{lm}"))
-            elif tk in MOM_DIP:         # RSI 未超卖：趋势回调 破日线下轨且价 MA200 上
-                if m["pctB"] is not None and m["pctB"] < 0 and m["above_ma200"]:
-                    buy.append((tk, name, f"破布林下轨·价在MA200上｜{fmt_tstat(m['tstats']['dip'], m.get('since'))}{lm}"))
-            elif tk in MOM_BIG:         # RSI 未超卖：大级别支撑 破 100 日布林下轨
-                if m["below100"]:
-                    buy.append((tk, name, f"破100日布林下轨(大支撑)｜{fmt_tstat(m['tstats']['b100'], m.get('since'))}{lm}"))
-            # NET/COIN 现在有 RSI 档(破布林无效但深度超卖有效)；RSI 未超卖时无破轨信号
-        else:                            # 稳健组：RSI(14) 超卖 或 破100日布林(大级别支撑)
-            if rsi < 20:
-                strong_buy.append((tk, name, f"RSI(14) {rsi:.1f}｜{fmt_tstat(m['tstats']['rsi20'], m.get('since'))}{lm}"))
-            elif rsi < 25:
-                buy.append((tk, name, f"RSI(14) {rsi:.1f}｜{fmt_tstat(m['tstats']['rsi25'], m.get('since'))}{lm}"))
-            elif m["below100"]:          # RSI 未触发但破100日布林下轨
-                buy.append((tk, name, f"破100日布林下轨(大支撑)｜{fmt_tstat(m['tstats']['b100'], m.get('since'))}{lm}"))
-            if pe is not None and pe > 95 and rsi > 70:   # 卖出仅稳健组
-                sell.append((tk, name, f"PE分位 {pe:.0f}·RSI(14) {rsi:.1f}"))
+        cfg, trig, ts, since = m.get("cfg"), m.get("trig", {}), m.get("tstats", {}), m.get("since")
+        if cfg:                          # per-ticker：强买入(RSI极端超卖/破深周期布林)优先，其次买入
+            if trig.get("rsi_s"):
+                strong_buy.append((tk, name, sig_desc("rsi_s", cfg, rsi, ts["rsi_s"], since, lm)))
+            elif trig.get("boll_s"):
+                strong_buy.append((tk, name, sig_desc("boll_s", cfg, rsi, ts["boll_s"], since, lm)))
+            elif trig.get("rsi_b"):
+                buy.append((tk, name, sig_desc("rsi_b", cfg, rsi, ts["rsi_b"], since, lm)))
+            elif trig.get("boll_b"):
+                buy.append((tk, name, sig_desc("boll_b", cfg, rsi, ts["boll_b"], since, lm)))
+        if tk not in HI_VOL and pe is not None and pe > 95 and rsi > 70:   # 卖出/减仓参考(非高波动股)
+            sell.append((tk, name, f"PE分位 {pe:.0f}·RSI(14) {rsi:.1f}"))
 
     if n_fail > 3:   # 拉取失败过多(可能云端限速)：明确告警，绝不静默漏报
         warn = f"本次 {n_fail}/{len(bd.UNIVERSE)} 个标的数据拉取失败(疑似限速)，未完整检测、可能漏报信号，请留意。"
