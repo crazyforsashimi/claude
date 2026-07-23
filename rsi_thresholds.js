@@ -1,0 +1,1 @@
+window.RSI_THR={"AAPL":{"strong":null,"buy":30},"AMZN":{"strong":22,"buy":24},"AVGO":{"strong":28,"buy":30},"CAT":{"strong":28,"buy":30},"JPM":{"strong":null,"buy":30},"LLY":{"strong":null,"buy":30},"MCD":{"strong":24,"buy":26},"META":{"strong":24,"buy":26},"NEE":{"strong":null,"buy":18},"QCOM":{"strong":null,"buy":26}};

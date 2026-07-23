@@ -5,11 +5,24 @@
 5日/10日/20日三个持有期的方向胜率(收盘价 vs 信号日收盘，涨为对)。按 Tier2 分组组织。
 数据源：output/model_dataset.csv（build_dataset→build_labels 生成）。重跑：python gen_backtest_table.py
 """
+import json
 from pathlib import Path
+
+import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).parent
 DATA = ROOT / "output" / "model_dataset.csv"
+
+
+def wilson_lb(k, n, z=1.96):
+    if n == 0:
+        return 0.0
+    p = k / n
+    d = 1 + z * z / n
+    c = p + z * z / (2 * n)
+    m = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n))
+    return (c - m) / d
 
 HI_VOL = {"LEU", "COIN", "NET", "SNOW", "TSLA", "AMD", "GEV", "MU", "NVDA", "BABA", "CEG", "VST", "AVGO"}
 MOM_DIP = {"NVDA", "AVGO", "MU", "AMD", "GEV", "CEG", "LEU", "VST"}
@@ -22,15 +35,6 @@ NAMES = {
     "VST": "Vistra", "NEE": "新纪元", "GEV": "GE Vernova", "CAT": "卡特彼勒", "COIN": "Coinbase",
     "BABA": "阿里", "GS": "高盛", "MS": "摩根士丹利", "QQQ": "纳指100", "SPY": "标普500", "SOXX": "半导体ETF",
 }
-# 信号定义：(标签, 触发档色 sig-strong/sig-buy)
-SIG_LABEL = {
-    "rsi20": ("强买入 · RSI(14)&lt;20", "strong"),
-    "rsi25": ("买入 · RSI(14)&lt;25", "buy"),
-    "b100":  ("买入 · 破100日布林下轨", "buy"),
-    "dip":   ("买入 · 破下轨且价MA200上", "buy"),
-}
-
-
 def main():
     d = pd.read_csv(DATA).sort_values(["ticker", "date"]).reset_index(drop=True)
     for h in (5, 10, 20):
@@ -38,32 +42,46 @@ def main():
     d = d[d["fwd20"].notna()].copy()
     d["ma100"] = d.groupby("ticker")["close"].transform(lambda s: s.rolling(100).mean())
     d["std100"] = d.groupby("ticker")["close"].transform(lambda s: s.rolling(100).std())
-    d["b100"] = d.close <= d.ma100 - 2 * d.std100
-    masks = {
-        "rsi20": d.rsi14 < 20,
-        "rsi25": d.rsi14 < 25,
-        "b100": d.b100,
-        "dip": (d.boll_pctb < 0) & (d.px_ma200 > 0),
-    }
+    d["b100mask"] = d.close <= d.ma100 - 2 * d.std100
+    d["dipmask"] = (d.boll_pctb < 0) & (d.px_ma200 > 0)
+    RSI_THR = json.loads((ROOT / "output" / "rsi_thresholds.json").read_text(encoding="utf-8"))
 
-    def stat(tk, key):
-        s = d[(d.ticker == tk) & masks[key].fillna(False)]
+    def stat(tk, mask):
+        s = d[(d.ticker == tk) & mask.fillna(False)]
         n = len(s)
         if not n:
             return None
-        avg20 = (s["fwd20"].mean()) * 100
-        return (n, *[round((s[f"fwd{h}"] > 0).mean() * 100) for h in (5, 10, 20)], avg20)
+        lb = wilson_lb(int((s.fwd20 > 0).sum()), n)
+        return (n, *[round((s[f"fwd{h}"] > 0).mean() * 100) for h in (5, 10, 20)],
+                round(lb * 100), s["fwd20"].mean() * 100)
 
-    # 每组：标的顺序 + 该组适用的信号
+    def sigs_for(tk):
+        """该标的的信号档：RSI 阈值取 per-ticker 校准值(无则默认 强20/买25) + 破布林(按分组)。
+        强买入必须严于买入：无校准强买入档时，默认20 仅当严于买入阈值才用，否则该标的不出强买入。"""
+        thr = RSI_THR.get(tk, {})
+        by_t = thr.get("buy") or 25
+        st_t = thr.get("strong")
+        if st_t is None and 20 < by_t:
+            st_t = 20
+        out = []
+        if st_t is not None:
+            out.append((f"强买入 · RSI(14)&lt;{st_t}", "strong", d.rsi14 < st_t))
+        out.append((f"买入 · RSI(14)&lt;{by_t}", "buy", d.rsi14 < by_t))
+        if tk in MOM_DIP:
+            out.append(("买入 · 破下轨且价MA200上", "buy", d.dipmask))
+        elif tk in MOM_BIG or tk not in HI_VOL:
+            out.append(("买入 · 破100日布林下轨", "buy", d.b100mask))
+        return out                            # NET/COIN(HI_VOL非DIP非BIG)：无破布林，仅 RSI
+
     GROUPS = [
-        ("🛡️ 稳健组", "均值回归 · 非高波动 18 只", "#12924f",
-         [t for t in NAMES if t not in HI_VOL], ["rsi20", "rsi25", "b100"]),
-        ("🚀 趋势回调组", "半导体/AI硬件/电力 · RSI极端超卖 或 破日线下轨且价MA200上", "#4f46e5",
-         [t for t in NAMES if t in MOM_DIP], ["rsi20", "rsi25", "dip"]),
-        ("🏛️ 大级别支撑组", "SNOW/TSLA/BABA · RSI极端超卖 或 破100日布林", "#b45309",
-         [t for t in NAMES if t in MOM_BIG], ["rsi20", "rsi25", "b100"]),
-        ("⚡ 高波动·仅RSI极端档", "NET/COIN · 破布林抄底无效，只在深度超卖(RSI&lt;20/25)时出信号", "#7c3aed",
-         [t for t in NAMES if t in HI_VOL and t not in MOM_DIP and t not in MOM_BIG], ["rsi20", "rsi25"]),
+        ("🛡️ 稳健组", "均值回归 · 非高波动 · RSI 阈值已 per-ticker 校准(⚙)", "#12924f",
+         [t for t in NAMES if t not in HI_VOL]),
+        ("🚀 趋势回调组", "半导体/AI硬件/电力 · RSI 超卖 或 破日线下轨且价MA200上", "#4f46e5",
+         [t for t in NAMES if t in MOM_DIP]),
+        ("🏛️ 大级别支撑组", "SNOW/TSLA/BABA · RSI 超卖 或 破100日布林", "#b45309",
+         [t for t in NAMES if t in MOM_BIG]),
+        ("⚡ 高波动·仅RSI", "NET/COIN · 破布林抄底无效，只在深度超卖时出信号", "#7c3aed",
+         [t for t in NAMES if t in HI_VOL and t not in MOM_DIP and t not in MOM_BIG]),
     ]
 
     def pct_td(v, n):
@@ -72,32 +90,34 @@ def main():
         return f'<td class="num {cls}{faint}">{v}%</td>'
 
     sections = ""
-    for title, sub, color, tickers, keys in GROUPS:
+    for title, sub, color, tickers in GROUPS:
         rows = ""
         for tk in tickers:
-            entries = [(k, stat(tk, k)) for k in keys]
-            entries = [(k, s) for k, s in entries if s]     # 只列有触发的信号
+            calib = ' <span style="color:#7c3aed;font-weight:700" title="RSI阈值已per-ticker校准">⚙</span>' if tk in RSI_THR else ""
+            entries = [(lab, tier, stat(tk, mask)) for lab, tier, mask in sigs_for(tk)]
+            entries = [(lab, tier, s) for lab, tier, s in entries if s]     # 只列有触发的信号
             if not entries:
-                rows += (f'<tr><td class="tk">{tk}</td><td class="nm">{NAMES[tk]}</td>'
-                         f'<td class="mut" colspan="6">近5年无触发</td></tr>')
+                rows += (f'<tr><td class="tk">{tk}{calib}</td><td class="nm">{NAMES[tk]}</td>'
+                         f'<td class="mut" colspan="7">近5年无触发</td></tr>')
                 continue
-            for i, (k, s) in enumerate(entries):
-                n, r5, r10, r20, avg20 = s
-                lab, tier = SIG_LABEL[k]
-                tkcell = (f'<td class="tk" rowspan="{len(entries)}">{tk}</td>'
+            for i, (lab, tier, s) in enumerate(entries):
+                n, r5, r10, r20, lb, avg20 = s
+                tkcell = (f'<td class="tk" rowspan="{len(entries)}">{tk}{calib}</td>'
                           f'<td class="nm" rowspan="{len(entries)}">{NAMES[tk]}</td>') if i == 0 else ""
                 avgcls = "hi" if avg20 > 0 else "lo"
+                lbcls = "hi" if lb >= 60 else "mid" if lb >= 50 else "lo"
                 rows += (f'<tr>{tkcell}'
                          f'<td class="sig {tier}">{lab}</td>'
                          f'<td class="num">{n}</td>'
                          f'{pct_td(r5, n)}{pct_td(r10, n)}{pct_td(r20, n)}'
+                         f'<td class="num {lbcls}">{lb}%</td>'
                          f'<td class="num {avgcls}">{avg20:+.1f}%</td></tr>')
         sections += (f'<section><div class="gh" style="color:{color}">{title}'
                      f'<span class="gsub">{sub}</span></div>'
                      '<div class="tw"><table><thead><tr>'
-                     '<th>代码</th><th>名称</th><th>信号</th><th class="num">触发次数</th>'
-                     '<th class="num">5日涨率</th><th class="num">10日涨率</th><th class="num">20日涨率</th>'
-                     '<th class="num">20日均值</th></tr></thead>'
+                     '<th>代码</th><th>名称</th><th>信号</th><th class="num">触发</th>'
+                     '<th class="num">5日</th><th class="num">10日</th><th class="num">20日</th>'
+                     '<th class="num">20日下界</th><th class="num">20日均值</th></tr></thead>'
                      f'<tbody>{rows}</tbody></table></div></section>')
 
     asof = str(d["date"].max())[:10]
@@ -155,8 +175,9 @@ TEMPLATE = """<!doctype html>
 <div class="wrap">
   <p class="eyebrow">买入 / 强买入信号 · 历史回溯</p>
   <h1>31 标的 · 5 年触发次数与 5/10/20 日反弹概率</h1>
-  <p class="lede">按 <b>Tier2 分组</b>列出每个标的实际启用的买入/强买入信号:<b>触发次数</b> + 同一批信号在 <b>5日 / 10日 / 20日</b>三个持有期的<b>方向胜率</b>(信号日收盘 → N 个交易日后收盘,涨为对) + 20日平均收益。同批口径(以能算满20日为准)才能看出<b>反弹节奏</b>——如某标的"10日涨率" 明显低于 5日/20日,说明破位后往往先探底再拉起、中途难受。</p>
-  <p class="lede"><b>怎么读</b>:胜率 <span style="color:var(--hi);font-weight:600">≥70% 绿</span> / <span style="color:var(--mid);font-weight:600">50–70% 琥珀</span> / <span style="color:var(--lo);font-weight:600">&lt;50% 红</span>;触发次数 <b>&lt;5 的行半透明</b>——小样本,胜率再高也只作"极端程度/方向"参考,别当 edge。NET/COIN 技术上无可靠抄底点、不列。</p>
+  <p class="lede">按 <b>Tier2 分组</b>列出每个标的实际启用的买入/强买入信号:<b>触发次数</b> + 同一批信号在 <b>5日 / 10日 / 20日</b>三个持有期的<b>方向胜率</b>(信号日收盘 → N 个交易日后收盘,涨为对) + <b>20日 Wilson 下界</b>(重罚小样本的保守胜率、校准用的核心尺) + 20日平均收益。</p>
+  <p class="lede"><b>⚙ = RSI 阈值已 per-ticker 校准</b>:固定 RSI&lt;20/25 对强趋势股几乎不触发,故用每只 5 年数据定制阈值——<b>但只对"放宽后 Wilson 下界仍≥60%"的 10 只标的放宽</b>(如 CAT 买入 RSI&lt;30、AMZN RSI&lt;24),其余守默认 20/25、靠破布林兜底。强买入档要求更严(样本少、胜率≥90%)。<b>⚠️ 阈值在同份数据上选+评估,有过拟合乐观偏差,实盘打折看待。</b></p>
+  <p class="lede"><b>怎么读</b>:胜率/下界 <span style="color:var(--hi);font-weight:600">≥70/≥60 绿</span> / <span style="color:var(--mid);font-weight:600">中档琥珀</span> / <span style="color:var(--lo);font-weight:600">低 红</span>;触发次数 <b>&lt;5 的行半透明</b>——小样本,胜率再高也只作参考、别当 edge。</p>
   <p class="asof">数据截至 {{ASOF}} · 口径与工具/邮件/logic.html 完全一致</p>
   {{SECTIONS}}
   <div class="foot">
