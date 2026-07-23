@@ -37,14 +37,16 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_TO: ${{ secrets.SMTP_TO }}
           ALERT_TEST: ${{ github.event.inputs.test }}
-        run: python daily_alert.py
-      - name: 提交 forward 记录(signal_log.json)
+        run: |
+          python daily_alert.py
+          python gen_forward_report.py    # 更新前瞻战绩报告(纯读 signal_log，无需 API)
+      - name: 提交 forward 记录 + 报告
         if: ${{ github.event.inputs.test != 'true' }}   # 测试模式不动记录
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add signal_log.json
+          git add signal_log.json forward_report.html
           git diff --staged --quiet && exit 0            # 无新触发/无补算 → 不提交
-          git commit -m "chore: forward 信号记录更新 [skip ci]"
+          git commit -m "chore: forward 记录 + 报告更新 [skip ci]"
           git pull --rebase --autostash origin main || true   # 避免与其它 commit 冲突
           git push

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>前瞻战绩 · 真实信号表现追踪</title>
+<style>
+  :root{--bg:#eef1f4;--card:#fff;--ink:#1a1d21;--muted:#8a9099;--line:#e4e8ec;--head:#f5f6f8;
+    --hi:#12924f;--mid:#b7791f;--lo:#d92d20;--strong:#0b7a41;--buy:#12924f;}
+  @media(prefers-color-scheme:dark){:root{--bg:#0d1015;--card:#161a20;--ink:#e6e9ee;--muted:#8b93a0;--line:#252b33;
+    --head:#1c2129;--hi:#43d18f;--mid:#e0a53f;--lo:#ff6b60;--strong:#43d18f;--buy:#43d18f;}}
+  :root[data-theme="light"]{--bg:#eef1f4;--card:#fff;--ink:#1a1d21;--muted:#8a9099;--line:#e4e8ec;--head:#f5f6f8;--hi:#12924f;--mid:#b7791f;--lo:#d92d20;--strong:#0b7a41;--buy:#12924f;}
+  :root[data-theme="dark"]{--bg:#0d1015;--card:#161a20;--ink:#e6e9ee;--muted:#8b93a0;--line:#252b33;--head:#1c2129;--hi:#43d18f;--mid:#e0a53f;--lo:#ff6b60;--strong:#43d18f;--buy:#43d18f;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:40px 18px 72px}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
+  h1{font-size:24px;font-weight:750;margin:0 0 10px}
+  h2{font-size:17px;font-weight:700;margin:30px 0 10px}
+  .lede{font-size:14px;color:var(--muted);max-width:78ch;margin:0 0 14px;line-height:1.65}
+  .lede b{color:var(--ink)}
+  .ov{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 15px;font-size:13.5px;color:var(--muted);margin-bottom:6px}
+  .ov b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .empty{background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:28px;text-align:center;color:var(--muted);margin-top:20px}
+  .tw{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+  th,td{padding:9px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+  th{background:var(--head);font-size:12px;color:var(--muted);font-weight:600}
+  th.num,td.num{text-align:right}
+  tbody tr:last-child td{border-bottom:none}
+  .lbl{font-weight:600}
+  td.tk{font-weight:700}.td.nm,td.nm{color:var(--muted);font-size:12.5px}
+  .sig.strong{color:var(--strong);font-weight:600}.sig.buy{color:var(--buy)}
+  .win{font-size:12px;color:var(--muted)}
+  .num.hi{color:var(--hi);font-weight:600}.num.mid{color:var(--mid);font-weight:600}.num.lo{color:var(--lo);font-weight:600}
+  .sub2{font-size:10.5px;color:var(--muted);font-weight:400}
+  tr.gap td{background:var(--head);color:var(--muted);font-size:11.5px;text-align:center;padding:4px}
+  .mut{color:var(--muted)}
+  .note{font-size:12px;color:var(--muted);line-height:1.7;margin-top:12px}
+  .note b{color:var(--ink)}
+  a{color:#2563eb}
+</style></head><body>
+<div class="wrap">
+  <p class="eyebrow">前瞻战绩 · Forward Tracking</p>
+  <h1>真实信号表现追踪</h1>
+  <p class="lede">从开始追踪起,每次触发买入/强买入信号后,系统逐日记录该标的**真实**的 5/10/20 日走势。这是<b>无偏的样本外验证</b>——回测(<a href="backtest_stats.html">backtest_stats.html</a>)的胜率是"同数据选参数又评估",有过拟合乐观偏差;这里是真金白银的未来。<b>攒得越多越可信</b>,拿两边一比就知道纸面 vs 实盘差多少。</p>
+  <div class="ov"><b>2</b> 条记录 · <b>0</b> 条已满20日(可算) · <b>2</b> 条进行中 · 追踪 2026-07-23 起 · 今日 2026-07-23</div>
+  <h2>真实前瞻胜率</h2><div class="tw"><table><thead><tr><th>分组</th><th class="num">记录数</th><th class="num">5日</th><th class="num">10日</th><th class="num">20日</th></tr></thead><tbody><tr><td class="lbl"><b>全部信号</b></td><td class="num">2<span class="sub2">（0完成）</span></td><td class="num mut">—</td><td class="num mut">—</td><td class="num mut">—</td></tr><tr class="gap"><td colspan="5">— 按级别 —</td></tr><tr><td class="lbl">强买入</td><td class="num">1<span class="sub2">（0完成）</span></td><td class="num mut">—</td><td class="num mut">—</td><td class="num mut">—</td></tr><tr><td class="lbl">买入</td><td class="num">1<span class="sub2">（0完成）</span></td><td class="num mut">—</td><td class="num mut">—</td><td class="num mut">—</td></tr><tr class="gap"><td colspan="5">— 按窗口 —</td></tr><tr><td class="lbl">2年</td><td class="num">2<span class="sub2">（0完成）</span></td><td class="num mut">—</td><td class="num mut">—</td><td class="num mut">—</td></tr></tbody></table></div><p class="note">胜率后括号 = (样本数·平均收益)。<b>只有到了触发后第 20 个交易日</b>的记录才计入 20 日列(5/10 日同理)——所以早期"进行中"多、样本少很正常,攒久了才可信。绿≥70% / 琥珀50-70% / 红&lt;50%。</p><h2>完整记录（最新在上）</h2><div class="tw"><table><thead><tr><th>触发日</th><th>代码</th><th>名称</th><th>信号</th><th>窗口</th><th class="num">触发收盘</th><th class="num">5日</th><th class="num">10日</th><th class="num">20日</th></tr></thead><tbody><tr><td>2026-07-23</td><td class="tk">TSLA</td><td class="nm">特斯拉</td><td class="sig strong">强买入·破150日布林</td><td class="win">2年</td><td class="num">321.52</td><td class="num">进行中</td><td class="num">进行中</td><td class="num">进行中</td></tr><tr><td>2026-07-23</td><td class="tk">MCD</td><td class="nm">麦当劳</td><td class="sig buy">买入·破50日布林</td><td class="win">2年</td><td class="num">262.24</td><td class="num">进行中</td><td class="num">进行中</td><td class="num">进行中</td></tr></tbody></table></div>
+</div></body></html>
