@@ -4,7 +4,8 @@
 信号档来自 signal_config.json(gen_signal_config.py 校准)：每标的的 rsi_s/rsi_b(RSI<校准阈值) +
 boll_s/boll_b(破 N日布林下轨)。个股率在悬浮卡片里显示该标的自己的历史成功率(如实带样本数 N)。
 N 小(甚至=1)也保留——极罕见=极端，可靠性由 N 自证、不冒充 edge。
-值为 [N, 5日, 10日, 20日 上涨率%]（同一批信号看不同持有期→反弹节奏；N=0 存 [0,null,null,null]）。
+值为 [N, 5日, 10日, 20日 上涨率%, 独立事件数]（同一批信号看不同持有期→反弹节奏；N=0 存 [0,null,null,null,0]）。
+独立事件数=连续破位(相邻 ≤20 交易日)合并后的实际波数(仅展示，胜率/N 仍按全部触发的原口径)。
 另存 _y=数据起始年(新股不足4.5年时)，供"自YYYY年回溯"文案。
 
 重跑：python build_ticker_stats.py（先跑 gen_signal_config.py 生成 signal_config.json）
@@ -13,6 +14,8 @@ import json
 from pathlib import Path
 
 import pandas as pd
+
+from event_dedup import dedup   # 统计独立事件数(展示用，不改胜率/N 口径)
 
 ROOT = Path(__file__).parent
 DATA = ROOT / "output" / "model_dataset.csv"
@@ -32,6 +35,7 @@ def main():
         sd = d.groupby("ticker")["close"].transform(lambda s: s.rolling(N).std())
         d[f"boll{N}"] = d.close <= ma - 2 * sd
     d = d[d["fwd20"].notna()].copy()
+    d["_pos"] = d.groupby("ticker").cumcount()   # 完整序列位置 → event_dedup 判相邻触发间隔
     now = pd.Timestamp.today()
     cutoff = now - pd.DateOffset(years=2)
 
@@ -39,8 +43,9 @@ def main():
         s = gsub[mask.reindex(gsub.index).fillna(False)]
         n = len(s)
         if not n:
-            return [0, None, None, None]
-        return [n] + [round((s[f"fwd{h}"] > 0).mean() * 100) for h in (5, 10, 20)]
+            return [0, None, None, None, 0]
+        _, _, ev = dedup(s)   # 独立事件数(连续破位合并、取簇内 RSI 最低代表)——仅展示，胜率/N 仍原口径
+        return [n] + [round((s[f"fwd{h}"] > 0).mean() * 100) for h in (5, 10, 20)] + [ev]
 
     def slot_stats(gsub, cfg_win):
         e = {}

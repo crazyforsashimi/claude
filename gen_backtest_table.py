@@ -11,6 +11,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from event_dedup import dedup   # 仅用于统计独立事件数(展示)，不参与胜率/触发口径
+
 ROOT = Path(__file__).parent
 DATA = ROOT / "output" / "model_dataset.csv"
 
@@ -47,6 +49,7 @@ def main():
         sd = d.groupby("ticker")["close"].transform(lambda s: s.rolling(N).std())
         d[f"boll{N}"] = d.close <= ma - 2 * sd
     d = d[d["fwd20"].notna()].copy()
+    d["_pos"] = d.groupby("ticker").cumcount()   # 完整序列位置 → 供 event_dedup 统计独立事件数
     cutoff = d["dt"].max() - pd.DateOffset(years=2)
 
     def stat(dwin, tk, mask):
@@ -54,9 +57,10 @@ def main():
         n = len(s)
         if not n:
             return None
+        _, _, ev = dedup(s)   # 独立事件数(连续破位合并、取簇内 RSI 最低代表)——仅展示，胜率/触发/Wilson 仍按原口径
         lb = wilson_lb(int((s.fwd20 > 0).sum()), n)
         return (n, *[round((s[f"fwd{h}"] > 0).mean() * 100) for h in (5, 10, 20)],
-                round(lb * 100), s["fwd20"].mean() * 100)
+                round(lb * 100), s["fwd20"].mean() * 100, ev)
 
     def sigs_for(cw):
         out = []
@@ -93,20 +97,22 @@ def main():
                 entries = [(lab, tier, stat(dwin, tk, mask)) for lab, tier, mask in sigs_for(CFG[tk][wkey])]
                 entries = [(lab, tier, s) for lab, tier, s in entries if s]
                 if not entries:
-                    rows += f'<tr><td class="tk">{tk}</td><td class="nm">{NAMES[tk]}</td><td class="mut" colspan="7">该窗口无触发</td></tr>'
+                    rows += f'<tr><td class="tk">{tk}</td><td class="nm">{NAMES[tk]}</td><td class="mut" colspan="8">该窗口无触发</td></tr>'
                     continue
                 for i, (lab, tier, s) in enumerate(entries):
-                    n, r5, r10, r20, lb, avg20 = s
+                    n, r5, r10, r20, lb, avg20, ev = s
                     tkcell = (f'<td class="tk" rowspan="{len(entries)}">{tk}</td>'
                               f'<td class="nm" rowspan="{len(entries)}">{NAMES[tk]}</td>') if i == 0 else ""
                     avgcls = "hi" if avg20 > 0 else "lo"
                     lbcls = "hi" if lb >= 60 else "mid" if lb >= 50 else "lo"
+                    evcls = "" if ev >= 3 else " lo"   # 独立事件 <3 标红：小样本、胜率参考性弱
                     rows += (f'<tr>{tkcell}<td class="sig {tier}">{lab}</td><td class="num">{n}</td>'
+                             f'<td class="num{evcls}">{ev}</td>'
                              f'{pct_td(r5, n)}{pct_td(r10, n)}{pct_td(r20, n)}'
                              f'<td class="num {lbcls}">{lb}%</td><td class="num {avgcls}">{avg20:+.1f}%</td></tr>')
             out_html += (f'<section><div class="gh" style="color:{color}">{title}</div>'
                          '<div class="tw"><table><thead><tr>'
-                         '<th>代码</th><th>名称</th><th>信号</th><th class="num">触发</th>'
+                         '<th>代码</th><th>名称</th><th>信号</th><th class="num">触发</th><th class="num">独立事件</th>'
                          '<th class="num">5日</th><th class="num">10日</th><th class="num">20日</th>'
                          '<th class="num">20日下界</th><th class="num">20日均值</th></tr></thead>'
                          f'<tbody>{rows}</tbody></table></div></section>')
@@ -171,13 +177,13 @@ TEMPLATE = """<!doctype html>
   <p class="eyebrow">买入 / 强买入信号 · 历史回溯</p>
   <h1>双窗口回溯 · 5年(长期极端) + 2年(近期敏感)</h1>
   <p class="lede"><b>per-ticker 双窗口校准</b>:每只标的用 <b>5年</b>(长期极端、质量硬)和 <b>2年</b>(近期敏感、抓当下情绪)各定制 RSI 阈值 + 布林周期。判定用<b>原始胜率</b>——强买入:5/10/20日 ≥2个&gt;95%且三个&gt;55%;买入:≥2个&gt;80%且三个&gt;55%。理念:<b>N 小=极端罕见=大机会</b>。下方分两大块:<b>5年窗口</b>(全样本)和 <b>2年窗口</b>(近两年样本)——2年门槛通常更宽松、更易触发(如 NEE 5年 RSI&lt;18 → 2年 RSI&lt;30),AMD/MS/TSM 只在2年有档。</p>
-  <p class="lede">列含<b>触发次数 + 5/10/20日方向胜率 + 20日 Wilson 下界</b>(参考、不是门槛) + 20日平均收益。<b>⚠️ 阈值在同份数据上选+评估,有过拟合乐观偏差;2年样本更少、且近两年上涨市含更多 beta,参考性弱于5年,实盘打折。</b></p>
+  <p class="lede">列含<b>触发次数 + 独立事件数 + 5/10/20日方向胜率 + 20日 Wilson 下界</b>(参考、不是门槛) + 20日平均收益。<b>★独立事件</b>=同一波下跌连续破位合并为 1 次(相邻触发 ≤20 个交易日即算同一波)——如 TSLA 2026-04-06~04-13 那 <b>6 次触发其实是 1 个独立事件</b>;胜率仍按全部触发算(口径未变),独立事件数只帮你看清<b>高胜率是不是靠一两波撑起来的</b>(该列 &lt;3 标红)。<b>⚠️ 阈值在同份数据上选+评估,有过拟合乐观偏差;2年样本更少、且近两年上涨市含更多 beta,参考性弱于5年,实盘打折。</b></p>
   <p class="lede"><b>怎么读</b>:胜率/下界 <span style="color:var(--hi);font-weight:600">≥70/≥60 绿</span> / <span style="color:var(--mid);font-weight:600">中档琥珀</span> / <span style="color:var(--lo);font-weight:600">低 红</span>;触发次数 <b>&lt;5 的行半透明</b>——小样本、极端罕见,由 N 自证。</p>
   <p class="asof">数据截至 {{ASOF}} · 口径与工具/邮件/logic.html 完全一致</p>
   {{SECTIONS}}
   <div class="foot">
     <b>口径</b>　"涨率"= 固定持有期终点方向胜率(只看第 N 个交易日收盘 vs 信号日,不看中途路径/回撤);真正决定可交易性的是分组 <b>edge + 三重障碍盈亏比</b>(见 <code>logic.html</code>),此表的个股胜率是辅助佐证。<br>
-    <b>样本独立性</b>　同一波回调里连续破位会连续触发、高度相关,"触发次数"高估独立事件数;叠加多数标的近年为上升趋势,小样本高胜率含较多 beta,审慎看待。<br>
+    <b>样本独立性</b>　同一波回调里连续破位会连续触发、高度相关,"触发次数"高估独立事件数——故新增<b>独立事件</b>列(连续触发合并、相邻 ≤20 交易日算同一波、取簇内 RSI 最低那天为代表);<b>胜率/触发/Wilson 口径未变,该列仅供你判断样本真实独立度</b>(事件数越接近触发次数越可信,差距越大说明高胜率越靠少数几波)。叠加多数标的近年为上升趋势,小样本高胜率含较多 beta,审慎看待。<br>
     <b>数据源</b>　<code>output/model_dataset.csv</code>(近5年复权日线);重跑 <code>python gen_backtest_table.py</code> 更新。
   </div>
 </div></body></html>"""

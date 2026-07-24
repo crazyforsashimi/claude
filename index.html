@@ -511,7 +511,7 @@ function classifyPct(v){ if(v==null)return""; return v>=80?"p-red":v<=20?"p-gree
    个股率来自 ticker_stats.js(build_ticker_stats.py 按各标的档生成)——N 小也保留、可靠性由 N 自证。 */
 const TICKER_STATS = (typeof window!=="undefined" && window.TICKER_STATS) || {};
 const SIGNAL_CFG = (typeof window!=="undefined" && window.SIGNAL_CFG) || {};   // per-ticker RSI阈值 + 布林周期
-function tickerStat(tk,window,key){const e=(TICKER_STATS[tk]||{})[window]||{};const s=e[key];const period=window==="2y"?"近两年":(e._y?`自${e._y}年`:"过去五年");if(!s||s[0]===0)return `本标的${period} 0 次(极罕见)`;return `本标的${period}回溯 ${s[0]} 次·涨率 5日${s[1]}% / 10日${s[2]}% / 20日${s[3]}%`;}
+function tickerStat(tk,window,key){const e=(TICKER_STATS[tk]||{})[window]||{};const s=e[key];const period=window==="2y"?"近两年":(e._y?`自${e._y}年`:"过去五年");if(!s||s[0]===0)return `本标的${period} 0 次(极罕见)`;const ev=s.length>4?s[4]:s[0];return `本标的${period}回溯 ${s[0]} 次(${ev}个独立事件)·涨率 5日${s[1]}% / 10日${s[2]}% / 20日${s[3]}%`;}
 const HI_VOL = new Set(["LEU","COIN","NET","SNOW","TSLA","AMD","GEV","MU","NVDA","BABA","CEG","VST","AVGO"]);  // 卖出信号排除(超买续涨)
 
 /* 机会标签的自定义悬浮卡片：解析 signalOf 的 tip(｜分隔) → bullet 分列 + 标的/信号来源/信号档头部 */

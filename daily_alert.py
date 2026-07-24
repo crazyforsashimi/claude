@@ -17,9 +17,11 @@ import os
 import sys
 import time
 
+import numpy as np
 import pandas as pd
 
 import build_dataset as bd   # 复用取数/指标/估值逻辑，口径一致
+from event_dedup import event_reps   # 统计独立事件数(展示用，不改胜率/触发口径)
 
 # per-ticker 信号配置(RSI 阈值 + 布林周期)——gen_signal_config.py 校准生成，与工具 index.html 同源
 _CFG_PATH = os.path.join(os.path.dirname(__file__), "signal_config.json")
@@ -57,12 +59,14 @@ def sig_desc(kind, cfg, rsi, ts, since, lm, window, wlabel):
 
 
 def fmt_tstat(s, since=None, window="5y"):
-    """格式化个股回溯 [N,5/10/20日涨率%]。window=2y→"近两年";5y→"过去五年"(新股不足5年显示"自YYYY年")。"""
+    """格式化个股回溯 [N,5/10/20日涨率%,独立事件数]。window=2y→"近两年";5y→"过去五年"(新股不足5年显示"自YYYY年")。
+    独立事件数 = 连续破位合并后的实际波数(仅展示，胜率/次数仍按全部触发的原口径算)。"""
     period = "近两年" if window == "2y" else (f"自{since}年" if since else "过去五年")
     if not s or s[0] == 0:
         return f"本标的{period}0次(极罕见)"
-    n, r5, r10, r20 = s
-    return f"本标的{period}回溯{n}次·涨率 5日{r5}% / 10日{r10}% / 20日{r20}%"
+    n, r5, r10, r20 = s[:4]
+    ev = s[4] if len(s) > 4 else n
+    return f"本标的{period}回溯{n}次({ev}个独立事件)·涨率 5日{r5}% / 10日{r10}% / 20日{r20}%"
 
 
 def extract_detail(m, kind, w):
@@ -241,11 +245,15 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
                               "f5": fwd[5], "f10": fwd[10], "f20": fwd[20]})
 
     def pstat(mask, vmask):
+        """[触发次数, 5/10/20日胜率%, 独立事件数]。胜率/次数按全部触发(原口径)；独立事件数仅展示——
+        连续破位(相邻 ≤20 交易日)合并为一波，看高胜率是否靠少数几波撑起。"""
         mm = (mask & vmask).fillna(False)
         n = int(mm.sum())
         if not n:
-            return [0, None, None, None]
-        return [n] + [round((fwd[h][mm] > 0).mean() * 100) for h in (5, 10, 20)]
+            return [0, None, None, None, 0]
+        pos = np.where(mm.values)[0]
+        ev = len(event_reps(list(pos), list(df["rsi14"].values[pos])))
+        return [n] + [round((fwd[h][mm] > 0).mean() * 100) for h in (5, 10, 20)] + [ev]
 
     cfg5 = cfg2 = None
     ts5, tr5, ts2, tr2 = {}, {}, {}, {}   # 必须各自独立 dict(别名会让 tr[k]=bool 覆盖 ts[k]=[N,...])
@@ -401,10 +409,10 @@ def main():
         _mcd_d = [["2024-08-05", 271.6, -0.052, 19.8, 0.03, 0.06, 0.09], ["2025-04-07", 279.0, -0.031, 18.5, 0.08, 0.11, 0.14]]
         _tsla_d = [["2026-04-06", 352.82, -0.022, 36.5, -0.001, 0.112, 0.112], ["2026-04-08", 343.25, -0.010, 33.7, 0.142, 0.129, 0.162],
                    ["2026-04-13", 352.42, 0.010, 39.2, 0.114, 0.074, 0.263], ["2026-07-23", 321.34, -0.141, 29.4, None, None, None]]
-        sample = [("strong", [("MCD", "麦当劳", "RSI(14) 18.5 &lt;20 极端超卖 · 5年+2年窗口都触发｜本标的过去五年回溯14次·涨率 5日100% / 10日86% / 20日100%", _mcd_d)]),
-                  ("buy", [("TSLA", "特斯拉", "破 150 日布林下轨 · 2年窗口｜本标的近两年回溯7次·涨率 5日83% / 10日100% / 20日100%", _tsla_d),
-                           ("META", "Meta", "破 200 日布林下轨(深度支撑) · 5年窗口｜本标的过去五年回溯4次·涨率 5日100% / 10日100% / 20日100%", []),
-                           ("AVGO", "博通", "RSI(14) 25.0 &lt;28 深度超卖 · 5年窗口｜本标的过去五年回溯6次·涨率 5日100% / 10日100% / 20日100%｜⚠️财报暴雷坑(距财报6天·当日-9%·历史62%,慎接飞刀)", [])]),
+        sample = [("strong", [("MCD", "麦当劳", "RSI(14) 18.5 &lt;20 极端超卖 · 5年+2年窗口都触发｜本标的过去五年回溯14次(6个独立事件)·涨率 5日100% / 10日86% / 20日100%", _mcd_d)]),
+                  ("buy", [("TSLA", "特斯拉", "破 150 日布林下轨 · 2年窗口｜本标的近两年回溯7次(1个独立事件)·涨率 5日83% / 10日100% / 20日100%", _tsla_d),
+                           ("META", "Meta", "破 200 日布林下轨(深度支撑) · 5年窗口｜本标的过去五年回溯4次(2个独立事件)·涨率 5日100% / 10日100% / 20日100%", []),
+                           ("AVGO", "博通", "RSI(14) 25.0 &lt;28 深度超卖 · 5年窗口｜本标的过去五年回溯6次(3个独立事件)·涨率 5日100% / 10日100% / 20日100%｜⚠️财报暴雷坑(距财报6天·当日-9%·历史62%,慎接飞刀)", [])]),
                   ("sell", [("GS", "高盛", "PE分位 98·RSI(14) 73", [])])]
         md, html = build_messages("示例数据（这是测试预览，非真实信号）", sample)
         notify("⚡自选股机会信号提示 · 样式预览（测试）", md, html)
