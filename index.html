@@ -386,7 +386,9 @@ async function fetchTicker(u){
         if(cw.rsi.s) tg.rsi_s = rec.rsi!=null && rec.rsi<cw.rsi.s;
         if(cw.rsi.b) tg.rsi_b = rec.rsi!=null && rec.rsi<cw.rsi.b;
         for(const [k,N] of [["boll_s",cw.boll.s],["boll_b",cw.boll.b]]){
-          if(N && cl.length>=N){ const m=avg(cl.slice(-N)), sd=Math.sqrt(avg(cl.slice(-N).map(x=>(x-m)**2))); tg[k]=rec.price<=m-2*sd; }
+          // 布林下轨用样本标准差(÷N−1, ddof=1)——必须与 gen_signal_config/回测/邮件的 pandas .std() 口径一致，
+          // 否则临界标的(如收盘贴轨 0.02%)会因 std 口径差(总体÷N vs 样本÷N−1)在工具与邮件间翻转、误报触发
+          if(N && cl.length>=N){ const w=cl.slice(-N), m=avg(w), sd=Math.sqrt(w.map(x=>(x-m)**2).reduce((a,b)=>a+b,0)/(N-1)); tg[k]=rec.price<=m-2*sd; }
         }
       }
     }
