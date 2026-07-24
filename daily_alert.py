@@ -47,15 +47,24 @@ def signal_masks(df, cfg):
     return out
 
 
-def sig_desc(kind, cfg, rsi, ts, since, lm, window, wlabel):
-    """信号文案(信号内容 · 窗口标注｜个股率｜财报)。kind ∈ rsi_s/rsi_b/boll_s/boll_b；window ∈ 5y/2y。"""
+def sig_desc(kind, cfg, rsi, ts, since, lm, window):
+    """信号文案(信号内容｜个股率｜财报)。kind ∈ rsi_s/rsi_b/boll_s/boll_b；window ∈ 5y/2y。
+    窗口(5年/2年/共振)已抽出为标的行的彩色徽章，不再拼进文字。"""
     body = {
         "rsi_s": lambda: f"RSI(14) {rsi:.1f} &lt;{cfg['rsi']['s']} 极端超卖",
         "rsi_b": lambda: f"RSI(14) {rsi:.1f} &lt;{cfg['rsi']['b']} 深度超卖",
         "boll_s": lambda: f"破 {cfg['boll']['s']} 日布林下轨(深度支撑)",
         "boll_b": lambda: f"破 {cfg['boll']['b']} 日布林下轨",
     }[kind]()
-    return f"{body} · {wlabel}｜{fmt_tstat(ts, since, window)}{lm}"
+    return f"{body}｜{fmt_tstat(ts, since, window)}{lm}"
+
+
+# 窗口徽章：两套信号系统用不同的绿区分(5年深、2年青、共振最深) → (徽章文字, 底色, 字色, 圆点色)
+WINDOW_BADGE = {
+    "5年":    ("5年窗口", "#e7f6ee", "#0f7a42", "#12924f"),   # 草绿:长期极端、质量硬
+    "2年":    ("2年窗口", "#daf1ed", "#0b7d6b", "#0d9488"),   # 青绿:近期敏感、参考性稍弱
+    "5年+2年": ("5年+2年", "#d3eeda", "#0a5e34", "#0b7a41"),  # 深绿:两套共振、最强
+}
 
 
 def fmt_tstat(s, since=None, window="5y"):
@@ -357,8 +366,11 @@ def build_messages(asof, groups):
     for key, items in groups:
         label, _, _ = GROUP_META[key]
         lines = [f"**{label}**"]
-        for t, n, mtc, detail in items:
-            lines.append(f"- **{t}** {n}（{group_label(t)[0]}）")
+        for item in items:
+            t, n, mtc, detail = item[:4]
+            win = item[4] if len(item) > 4 else ""
+            wtag = f"〔{WINDOW_BADGE[win][0]}〕" if win in WINDOW_BADGE else ""
+            lines.append(f"- {wtag}**{t}** {n}（{group_label(t)[0]}）")
             for p in [x.strip() for x in mtc.split("｜") if x.strip()]:
                 lines.append(f"  - {p}")
             lines += detail_md(detail)
@@ -370,12 +382,19 @@ def build_messages(asof, groups):
     for key, items in groups:
         label, sub, color = GROUP_META[key]
         blocks = ""
-        for t, n, mtc, detail in items:
+        for item in items:
+            t, n, mtc, detail = item[:4]
+            win = item[4] if len(item) > 4 else ""
             gl, gbg, gfg = group_label(t)
+            wbadge, wdot = "", color            # wdot=首条 bullet 圆点色：有窗口则用窗口色区分两套系统
+            if win in WINDOW_BADGE:
+                wt, wbg, wfg, wdot = WINDOW_BADGE[win]
+                wbadge = (f'<span style="display:inline-block;margin-left:8px;padding:1px 8px;border-radius:4px;'
+                          f'background:{wbg};color:{wfg};font-size:11px;font-weight:700;vertical-align:middle">{wt}</span>')
             parts = [x.strip() for x in mtc.split("｜") if x.strip()]
             rows = ""
             for i, p in enumerate(parts):
-                dot, txtcol, fs = _bullet_style(i, p, color)
+                dot, txtcol, fs = _bullet_style(i, p, wdot)
                 rows += ('<tr>'
                          f'<td style="vertical-align:top;color:{dot};padding:1px 8px 1px 0;font-size:13px">•</td>'
                          f'<td style="font-size:{fs};color:{txtcol};padding:1px 0;line-height:1.5">{p}</td></tr>')
@@ -383,7 +402,8 @@ def build_messages(asof, groups):
                        '<div style="margin-bottom:7px">'
                        f'<span style="font-weight:700;font-size:15px">{t}</span>'
                        f'<span style="color:#8a9099;font-size:13px;margin-left:6px">{n}</span>'
-                       f'<span style="display:inline-block;margin-left:8px;padding:1px 8px;border-radius:4px;'
+                       f'{wbadge}'
+                       f'<span style="display:inline-block;margin-left:6px;padding:1px 8px;border-radius:4px;'
                        f'background:{gbg};color:{gfg};font-size:11px;font-weight:600;vertical-align:middle">{gl}</span>'
                        '</div>'
                        f'<table cellpadding="0" cellspacing="0" style="border-collapse:collapse">{rows}</table>'
@@ -409,10 +429,10 @@ def main():
         _mcd_d = [["2024-08-05", 271.6, -0.052, 19.8, 0.03, 0.06, 0.09], ["2025-04-07", 279.0, -0.031, 18.5, 0.08, 0.11, 0.14]]
         _tsla_d = [["2026-04-06", 352.82, -0.022, 36.5, -0.001, 0.112, 0.112], ["2026-04-08", 343.25, -0.010, 33.7, 0.142, 0.129, 0.162],
                    ["2026-04-13", 352.42, 0.010, 39.2, 0.114, 0.074, 0.263], ["2026-07-23", 321.34, -0.141, 29.4, None, None, None]]
-        sample = [("strong", [("MCD", "麦当劳", "RSI(14) 18.5 &lt;20 极端超卖 · 5年+2年窗口都触发｜本标的过去五年回溯14次(6个独立事件)·涨率 5日100% / 10日86% / 20日100%", _mcd_d)]),
-                  ("buy", [("TSLA", "特斯拉", "破 150 日布林下轨 · 2年窗口｜本标的近两年回溯7次(1个独立事件)·涨率 5日83% / 10日100% / 20日100%", _tsla_d),
-                           ("META", "Meta", "破 200 日布林下轨(深度支撑) · 5年窗口｜本标的过去五年回溯4次(2个独立事件)·涨率 5日100% / 10日100% / 20日100%", []),
-                           ("AVGO", "博通", "RSI(14) 25.0 &lt;28 深度超卖 · 5年窗口｜本标的过去五年回溯6次(3个独立事件)·涨率 5日100% / 10日100% / 20日100%｜⚠️财报暴雷坑(距财报6天·当日-9%·历史62%,慎接飞刀)", [])]),
+        sample = [("strong", [("MCD", "麦当劳", "RSI(14) 18.5 &lt;20 极端超卖｜本标的过去五年回溯14次(6个独立事件)·涨率 5日100% / 10日86% / 20日100%", _mcd_d, "5年+2年")]),
+                  ("buy", [("TSLA", "特斯拉", "破 150 日布林下轨｜本标的近两年回溯7次(1个独立事件)·涨率 5日83% / 10日100% / 20日100%", _tsla_d, "2年"),
+                           ("META", "Meta", "破 200 日布林下轨(深度支撑)｜本标的过去五年回溯4次(2个独立事件)·涨率 5日100% / 10日100% / 20日100%", [], "5年"),
+                           ("AVGO", "博通", "RSI(14) 25.0 &lt;28 深度超卖｜本标的过去五年回溯6次(3个独立事件)·涨率 5日100% / 10日100% / 20日100%｜⚠️财报暴雷坑(距财报6天·当日-9%·历史62%,慎接飞刀)", [], "5年")]),
                   ("sell", [("GS", "高盛", "PE分位 98·RSI(14) 73", [])])]
         md, html = build_messages("示例数据（这是测试预览，非真实信号）", sample)
         notify("⚡自选股机会信号提示 · 样式预览（测试）", md, html)
@@ -461,15 +481,14 @@ def main():
                 if not k5 and not k2:
                     continue
                 wins = (["5年"] if k5 else []) + (["2年"] if k2 else [])
-                wlabel = "5年+2年窗口都触发" if len(wins) == 2 else f"{wins[0]}窗口"
+                wshort = "+".join(wins)  # "5年"/"2年"/"5年+2年" → 标的行窗口徽章 + forward 记录
                 if k5:                   # 主套优先 5年(更硬)：信号内容+个股率+明细表用 5年那套
-                    desc, kind, w = sig_desc(k5, cfg5, rsi, ts5[k5], since, lm, "5y", wlabel), k5, "5y"
+                    desc, kind, w = sig_desc(k5, cfg5, rsi, ts5[k5], since, lm, "5y"), k5, "5y"
                 else:
-                    desc, kind, w = sig_desc(k2, cfg2, rsi, ts2[k2], None, lm, "2y", wlabel), k2, "2y"
-                bucket.append((tk, name, desc, extract_detail(m, kind, w)))
+                    desc, kind, w = sig_desc(k2, cfg2, rsi, ts2[k2], None, lm, "2y"), k2, "2y"
+                bucket.append((tk, name, desc, extract_detail(m, kind, w), wshort))
                 # forward tracking：记这次触发(去重:同一 日期+标的+信号+窗口 只记一次)，之后逐日补算表现
                 lvl, sh = sig_short(kind, cfg5 if w == "5y" else cfg2)
-                wshort = "+".join(wins)
                 lkey = (asof, tk, sh, wshort)
                 if lkey not in logged:
                     log.append({"date": asof, "ticker": tk, "name": name, "level": lvl, "signal": sh,
