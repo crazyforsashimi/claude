@@ -16,6 +16,7 @@ import json
 import os
 import sys
 import time
+from datetime import date
 
 import numpy as np
 import pandas as pd
@@ -92,6 +93,21 @@ def extract_detail(m, kind, w):
 # ---- forward tracking：从今天起记录每次触发的买入/强买入信号，逐日补算 5/10/20 日真实表现 ----
 # 目的：积累无偏的样本外前瞻验证(对照回测胜率，看过拟合吃掉多少)。存 signal_log.json 进仓库。
 LOG_PATH = os.path.join(os.path.dirname(__file__), "signal_log.json")
+
+
+# ---- 当日去重：同一交易日多次扫描，信号指纹不变则不重复推送(手动触发/新增信号除外) ----
+ALERT_STATE_PATH = os.path.join(os.path.dirname(__file__), "last_alert.json")
+
+
+def load_last_alert():
+    try:
+        return json.load(open(ALERT_STATE_PATH, encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def save_last_alert(state):
+    json.dump(state, open(ALERT_STATE_PATH, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
 
 def load_log():
@@ -445,6 +461,7 @@ def main():
 
     print(f"【生产模式】实际检测 {len(bd.UNIVERSE)} 个标的的大机会信号…")
     strong_buy, buy, sell = [], [], []
+    alert_sigs = []      # 当日去重指纹：稳定的信号身份(级别|标的|信号|窗口)，不含 RSI/价格等易变数值
     asof = None
     n_fail = 0
     log = load_log()                     # forward tracking：记录每次触发 + 补算历史 pending 的 5/10/20 日表现
@@ -489,6 +506,7 @@ def main():
                 bucket.append((tk, name, desc, extract_detail(m, kind, w), wshort))
                 # forward tracking：记这次触发(去重:同一 日期+标的+信号+窗口 只记一次)，之后逐日补算表现
                 lvl, sh = sig_short(kind, cfg5 if w == "5y" else cfg2)
+                alert_sigs.append(f"{lvl}|{tk}|{sh}|{wshort}")   # 当日去重指纹
                 lkey = (asof, tk, sh, wshort)
                 if lkey not in logged:
                     log.append({"date": asof, "ticker": tk, "name": name, "level": lvl, "signal": sh,
@@ -498,6 +516,7 @@ def main():
                 break                    # 强买入触发就不再判买入
         if tk not in HI_VOL and pe is not None and pe > 95 and rsi > 70:   # 卖出/减仓参考(非高波动股)
             sell.append((tk, name, f"PE分位 {pe:.0f}·RSI(14) {rsi:.1f}", []))
+            alert_sigs.append(f"卖出|{tk}|PE>95&RSI>70")   # 当日去重指纹
 
     save_log(log)                        # 持久化 forward 记录(GitHub Action 会 commit signal_log.json)
 
@@ -510,6 +529,16 @@ def main():
         print(f"数据截至 {asof}：今日无大机会信号（失败 {n_fail} 只），不推送。")
         return
 
+    # 当日去重：同一交易日多次扫描，信号指纹与本日上次相同则不重复推送。
+    # 手动 Run workflow(FORCE_ALERT)绕过去重强制发；新增/减少信号→指纹变→照发全量。
+    digest = "\n".join(sorted(alert_sigs))
+    today = date.today().isoformat()
+    force = os.environ.get("FORCE_ALERT") == "true"
+    last = load_last_alert()
+    if not force and last.get("date") == today and last.get("digest") == digest:
+        print(f"数据截至 {asof}：信号与本日上次扫描一致（{len(alert_sigs)} 条），跳过重复推送。")
+        return
+
     groups = [(k, v) for k, v in [("strong", strong_buy), ("buy", buy), ("sell", sell)] if v]
     n_buy, n_sell = len(strong_buy) + len(buy), len(sell)   # 强买入并入买入计数（正文仍分组）
     title = "⚡自选股机会信号提示：" + "·".join(filter(None, [
@@ -518,6 +547,7 @@ def main():
     md, html = build_messages(asof, groups)
     print(title + "\n" + md)
     notify(title, md, html)
+    save_last_alert({"date": today, "digest": digest})   # 记录本日已发指纹，供后续扫描去重
 
 
 def notify(title: str, md: str, html: str):

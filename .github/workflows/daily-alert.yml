@@ -37,6 +37,7 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_TO: ${{ secrets.SMTP_TO }}
           ALERT_TEST: ${{ github.event.inputs.test }}
+          FORCE_ALERT: ${{ github.event_name == 'workflow_dispatch' }}   # 手动 Run workflow → 绕过当日去重，强制发
         run: |
           python daily_alert.py
           python gen_forward_report.py    # 更新前瞻战绩报告(纯读 signal_log，无需 API)
@@ -45,8 +46,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add signal_log.json forward_report.html
-          git diff --staged --quiet && exit 0            # 无新触发/无补算 → 不提交
+          git add signal_log.json forward_report.html last_alert.json
+          git diff --staged --quiet && exit 0            # 无新触发/无补算/无推送 → 不提交
           git commit -m "chore: forward 记录 + 报告更新 [skip ci]"
           git pull --rebase --autostash origin main || true   # 避免与其它 commit 冲突
           git push
