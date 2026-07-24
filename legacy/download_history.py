@@ -11,7 +11,7 @@ from pathlib import Path
 
 import requests
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).parent.parent  # 归档在 legacy/，ROOT 回指仓库根(数据仍在根 output/、historical_data/)
 CONFIG_JS = ROOT / "config.js"
 OUT_DIR = ROOT / "historical_data"
 BASE = "https://api.polygon.io"

@@ -25,7 +25,7 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.inspection import permutation_importance
 from sklearn.metrics import average_precision_score, roc_auc_score
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).parent.parent  # 归档在 legacy/，ROOT 回指仓库根(数据仍在根 output/、historical_data/)
 DATA = ROOT / "output" / "model_dataset.csv"
 HORIZON = 20   # 与 build_labels.py 一致：purge 掉训练尾部 20 交易日，防标签重叠泄漏
 

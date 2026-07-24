@@ -104,24 +104,37 @@ key 存在 **`config.js`** 里（被 `.gitignore` 忽略，不入仓库），由
 ## 文件结构
 ```
 stock-screener/
-├── index.html             # 选股工具本体（HTML/CSS/JS，部署 GitHub Pages）
-├── logic.html             # 大机会逻辑总结文档（分组信号 + 事件闸门，GitHub Pages；工具顶部「📖 逻辑文档」直达）
-├── ticker_stats.js        # 个股率表(工具加载；每月 Action 自动重算+commit，进仓库)
+│   ── 前端页面（GitHub Pages） ──
+├── index.html             # 选股工具本体（HTML/CSS/JS）
+├── logic.html             # 大机会逻辑文档（分组信号 + 事件闸门；工具顶部「📖 逻辑文档」直达）
+├── backtest_stats.html    # 双窗口(5年+2年)回溯查阅表（gen_backtest_table 生成）
+├── forward_report.html    # 前瞻战绩·真实信号表现追踪（gen_forward_report 生成）
+│   ── 前端加载的数据（进仓库） ──
+├── signal_config.js/json  # per-ticker 双窗口信号校准（RSI 阈值 + 布林周期）
+├── ticker_stats.js        # 个股回溯率表（每月 Action 重算+commit）
+├── signal_log.json        # 前瞻追踪记录（每日 Action 逐日补算 5/10/20 日表现）
+├── last_alert.json        # 当日去重状态（同日同信号不重复推送）
 ├── config.example.js      # key 模板（复制为 config.js 填入你的 key）
 ├── config.js              # 你的真实 key（.gitignore 忽略，不入仓库）
 ├── README.md · .gitignore
 │   ── 数据管线 ──
-├── build_dataset.py       # ①OHLCV + 技术指标 + 估值基本面 + 前瞻收益 → historical_data/
-├── build_labels.py        # ②三重障碍标签(3/2/20) + 派生特征 → output/model_dataset.csv
-├── download_history.py    # 轻量版：仅下载 5 年复权 OHLCV
-├── check_data_quality.py  # 数据质量体检（7 类自动检查）
-│   ── 建模 / 告警 ──
-├── edge_scanner.py        # 大机会条件扫描：分组回溯 + Wilson 下界 → output/edge_rules.csv
-├── train_model.py         # 买入检测器：HGB + Purged Walk-Forward（结论：综合特征无 alpha）
-├── daily_alert.py         # 每日告警：检测信号(实时算个股率) → 微信/邮件
-├── build_ticker_stats.py  # 生成个股率表 → ticker_stats.js（每月 Action 自动重跑）
-├── .github/workflows/     # daily-alert(盘中3次告警) + monthly-stats(每月重算个股率表)
-│   ── 生成数据(忽略) ──
+├── build_dataset.py       # OHLCV + 技术指标 + 估值基本面 + 前瞻收益 → historical_data/
+├── build_labels.py        # 三重障碍标签(3/2/20) + 派生特征 → output/model_dataset.csv
+│   ── 信号校准 / 统计（月度 Action + 手动） ──
+├── gen_signal_config.py   # per-ticker 双窗口信号校准 → signal_config.js/json
+├── build_ticker_stats.py  # 个股回溯率表 → ticker_stats.js
+├── gen_backtest_table.py  # 双窗口回溯查阅表 → backtest_stats.html（手动跑）
+│   ── 告警 / 前瞻（每日 Action） ──
+├── daily_alert.py         # 盘中检测信号(实时算个股率) → 微信/邮件（当日去重）
+├── gen_forward_report.py  # 前瞻战绩报告 → forward_report.html
+├── event_dedup.py         # 独立事件去重（连续破位合并；被 3 处复用）
+├── .github/workflows/     # daily-alert(盘中3次告警) + monthly-stats(每月重算)
+│   ── 归档 legacy/（无人 import、workflow 不调用，仅留参考） ──
+├── legacy/download_history.py    # 早期数据下载（被 build_dataset 取代）
+├── legacy/check_data_quality.py  # 数据质量体检（7 类自动检查，手动工具）
+├── legacy/edge_scanner.py        # 大机会条件扫描原型（被 gen_signal_config 取代）→ output/edge_rules.csv
+├── legacy/train_model.py         # 废弃 ML 检测器（HGB + Purged WF，AUC≈0.49 无 alpha）
+│   ── 生成数据（.gitignore 忽略） ──
 ├── historical_data/       # 原始日线数据
 └── output/                # 建模产物：model_dataset / edge_rules / oof_predictions / precision_curve
 ```
@@ -200,7 +213,7 @@ stock-screener/
 
 ## 数据质量体检（`check_data_quality.py`）
 
-`python3 check_data_quality.py` 对全部17个CSV跑7类自动检查：结构完整性、OHLC内部一致性、极端单日跳变(区分"多标的同日大动=真实市场事件"/"次日大幅反向抵消=疑似坏tick"/"孤立跳变=需人工复核")、技术指标越界、估值字段合理性、PE分位前视偏差自检(截断重算比对)、跨标的交易日历对齐。
+`python3 legacy/check_data_quality.py` 对全部17个CSV跑7类自动检查：结构完整性、OHLC内部一致性、极端单日跳变(区分"多标的同日大动=真实市场事件"/"次日大幅反向抵消=疑似坏tick"/"孤立跳变=需人工复核")、技术指标越界、估值字段合理性、PE分位前视偏差自检(截断重算比对)、跨标的交易日历对齐。
 
 **已发现并修复**：META 在 2021-07-22~2022-01-28 期间，Polygon/Massive 返回的收盘价系统性错误（约$12-15，真实值应为$300+），随后 2022-01-29~2022-06-08 又整体缺失约90个交易日，2022-06-09起才恢复正常且与真实股价吻合。`build_dataset.py` 现在会自动探测"交易日历大缺口(>10天) + 缺口前后价格跳变(>3倍)且无拆股记录能解释"，命中即丢弃缺口之前的不可靠数据 —— META.csv 因此从 2022-06-09 开始（1030行），而非17支标的默认的1253行。此逻辑是通用检测，不是针对META硬编码，未来若其他标的出现同类供应商数据错误也会自动处理。
 

@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).parent.parent  # 归档在 legacy/，ROOT 回指仓库根(数据仍在根 output/、historical_data/)
 DATA_DIR = ROOT / "historical_data"
 
 TICKERS = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "MCD", "TSM", "JPM",

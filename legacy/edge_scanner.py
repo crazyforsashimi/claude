@@ -21,7 +21,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).parent.parent  # 归档在 legacy/，ROOT 回指仓库根(数据仍在根 output/、historical_data/)
 DATA = ROOT / "output" / "model_dataset.csv"
 MIN_N = 20          # 样本量门槛：低于此不可信，直接剔除
 Z = 1.96            # 95% 置信
