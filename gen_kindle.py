@@ -87,7 +87,7 @@ def sparkline(closes, prev_close, w=320, h=96, pad=8):
     pts = " ".join(f"{X(i):.1f},{Y(c):.1f}" for i, c in enumerate(closes))
     yb = Y(prev_close)
     return (
-        f'<svg class="spark" viewBox="0 0 {w} {h}" preserveAspectRatio="none" '
+        f'<svg class="spark" viewBox="0 0 {w} {h}" '
         f'xmlns="http://www.w3.org/2000/svg">'
         f'<line x1="{pad}" y1="{yb:.1f}" x2="{w-pad}" y2="{yb:.1f}" '
         f'stroke="#000" stroke-width="1" stroke-dasharray="4 3" opacity="0.45"/>'
@@ -175,7 +175,7 @@ TEMPLATE = """<!doctype html>
   .chg {{ font-size: 19px; font-weight: 700; margin: 4px 0 6px; }}
   .card.down .chg, .card.down .sym {{}}   /* 灰度屏靠 ▲▼ 与符号区分，不用颜色 */
   .card.err .chg {{ font-weight: 400; font-style: italic; }}
-  .spark {{ width: 100%; height: 88px; display: block; }}
+  .spark {{ width: 100%; height: auto; display: block; }}   /* 等比缩放，线宽各向一致 */
   footer {{ margin-top: 12px; font-size: 13px; text-align: center; opacity: .7; }}
 </style>
 </head>
