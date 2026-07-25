@@ -146,7 +146,7 @@ TEMPLATE = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="900">
+<meta http-equiv="refresh" content="300">
 <title>Kindle 行情</title>
 <style>
   html {{ -webkit-text-size-adjust: 100%; }}
@@ -187,7 +187,7 @@ TEMPLATE = """<!doctype html>
 <div class="grid">
 {cards}
 </div>
-<footer>虚线 = 昨收 · 每 15 分钟自动刷新</footer>
+<footer>虚线 = 昨收 · 每 5 分钟自动刷新</footer>
 </body>
 </html>
 """

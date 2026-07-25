@@ -2,9 +2,9 @@ name: Kindle 行情看板
 
 on:
   schedule:
-    # 美东常规时段每 15 分钟刷新一次（UTC；覆盖夏令时 EDT 与冬令时 EST 两种偏移）
+    # 美东常规时段每 5 分钟刷新一次（UTC；覆盖夏令时 EDT 与冬令时 EST 两种偏移）
     # EDT: 09:30–16:00 ET = 13:30–20:00 UTC ； EST = 14:30–21:00 UTC
-    - cron: "*/15 13-21 * * 1-5"
+    - cron: "*/5 13-21 * * 1-5"
   workflow_dispatch:   # 允许在 Actions 页手动 Run workflow
 
 permissions:
