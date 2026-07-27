@@ -36,7 +36,7 @@ def get(path):
 
 
 def fetch(ticker):
-    """返回 (last, prev_close, [当日常规时段 close 序列], 数据时间戳ET)。失败抛异常。"""
+    """返回 (last, prev_close, [(bar时间ET, close), ...], 数据时间戳ET)。失败抛异常。"""
     now_et = datetime.datetime.now(ET)
     frm = (now_et - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
     to = now_et.strftime("%Y-%m-%d")
@@ -58,34 +58,41 @@ def fetch(ticker):
     if not days:
         raise ValueError("无常规时段数据")
 
-    cur = sessions[days[-1]]
-    closes = [c for _, c in cur]
-    last = closes[-1]
-    stamp = cur[-1][0]  # 最新一根 bar 的 ET 时间
+    cur = sessions[days[-1]]           # [(bar时间ET, close), ...]
+    last = cur[-1][1]
+    stamp = cur[-1][0]                 # 最新一根 bar 的 ET 时间
 
     if len(days) >= 2:
         prev_close = sessions[days[-2]][-1][1]
     else:
-        prev_close = closes[0]
+        prev_close = cur[0][1]
 
-    return last, prev_close, closes, stamp
+    return last, prev_close, cur, stamp
 
 
-def sparkline(closes, prev_close, w=320, h=96, pad=8):
+SESSION_START = 9 * 60 + 30   # 09:30 ET
+SESSION_LEN = 6 * 60 + 30     # 09:30–16:00 = 390 分钟
+
+
+def sparkline(bars, prev_close, w=320, h=96, pad=8):
+    """bars = [(bar时间ET, close), ...]。X 轴固定代表整个交易日，线随盘中推进从左往右生长。"""
+    closes = [c for _, c in bars]
     vals = closes + [prev_close]
     lo, hi = min(vals), max(vals)
     if hi == lo:
         hi = lo + 1
-    n = len(closes)
 
-    def X(i):
-        return pad + (w - 2 * pad) * (i / (n - 1) if n > 1 else 0)
+    def Xt(t):
+        frac = ((t.hour * 60 + t.minute) - SESSION_START) / SESSION_LEN
+        frac = min(1.0, max(0.0, frac))          # 越界夹到 [0,1]
+        return pad + (w - 2 * pad) * frac
 
     def Y(v):
         return pad + (h - 2 * pad) * (1 - (v - lo) / (hi - lo))
 
-    pts = " ".join(f"{X(i):.1f},{Y(c):.1f}" for i, c in enumerate(closes))
+    pts = " ".join(f"{Xt(t):.1f},{Y(c):.1f}" for t, c in bars)
     yb = Y(prev_close)
+    ex, ey = Xt(bars[-1][0]), Y(bars[-1][1])     # 当前位置的小圆点
     return (
         f'<svg class="spark" viewBox="0 0 {w} {h}" '
         f'xmlns="http://www.w3.org/2000/svg">'
@@ -93,6 +100,7 @@ def sparkline(closes, prev_close, w=320, h=96, pad=8):
         f'stroke="#000" stroke-width="1" stroke-dasharray="4 3" opacity="0.45"/>'
         f'<polyline points="{pts}" fill="none" stroke="#000" '
         f'stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
+        f'<circle cx="{ex:.1f}" cy="{ey:.1f}" r="3.5" fill="#000"/>'
         f'</svg>'
     )
 
@@ -102,7 +110,7 @@ _latest_stamp = [None]  # 记录所有标的中最新的一根 bar 时间，用�
 
 def card(ticker):
     try:
-        last, prev, closes, stamp = fetch(ticker)
+        last, prev, bars, stamp = fetch(ticker)
         if _latest_stamp[0] is None or stamp > _latest_stamp[0]:
             _latest_stamp[0] = stamp
         chg = last - prev
@@ -112,7 +120,7 @@ def card(ticker):
         sign = "+" if up else "-"
         price = f"{last:,.2f}"
         change = f"{arrow} {sign}{abs(chg):,.2f}  {sign}{abs(pct):.2f}%"
-        spark = sparkline(closes, prev)
+        spark = sparkline(bars, prev)
         cls = "up" if up else "down"
     except Exception as e:
         price = "&mdash;"
