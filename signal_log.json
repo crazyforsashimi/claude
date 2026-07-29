@@ -58,5 +58,29 @@
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
+ },
+ {
+  "date": "2026-07-29",
+  "ticker": "TSLA",
+  "name": "特斯拉",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 302.49,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-07-29",
+  "ticker": "CAT",
+  "name": "卡特彼勒",
+  "level": "买入",
+  "signal": "RSI(14)<30",
+  "window": "2年",
+  "entry_close": 788.0,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
  }
 ]
