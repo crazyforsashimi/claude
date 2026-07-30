@@ -7,7 +7,7 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 321.52,
-  "fwd5": null,
+  "fwd5": -0.053,
   "fwd10": null,
   "fwd20": null
  },
@@ -19,7 +19,7 @@
   "signal": "破50日布林",
   "window": "2年",
   "entry_close": 262.24,
-  "fwd5": null,
+  "fwd5": 0.0203,
   "fwd10": null,
   "fwd20": null
  },
@@ -79,6 +79,30 @@
   "signal": "RSI(14)<30",
   "window": "2年",
   "entry_close": 788.0,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-07-30",
+  "ticker": "META",
+  "name": "Meta",
+  "level": "强买入",
+  "signal": "破200日布林",
+  "window": "5年+2年",
+  "entry_close": 532.78,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-07-30",
+  "ticker": "TSLA",
+  "name": "特斯拉",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 304.49,
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
