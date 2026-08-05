@@ -67,7 +67,7 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 302.49,
-  "fwd5": null,
+  "fwd5": 0.0693,
   "fwd10": null,
   "fwd20": null
  },
@@ -79,7 +79,7 @@
   "signal": "RSI(14)<30",
   "window": "2年",
   "entry_close": 788.0,
-  "fwd5": null,
+  "fwd5": 0.1347,
   "fwd10": null,
   "fwd20": null
  },
@@ -151,6 +151,18 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 323.91,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-08-05",
+  "ticker": "TSLA",
+  "name": "特斯拉",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 323.45,
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
