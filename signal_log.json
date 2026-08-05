@@ -166,5 +166,17 @@
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
+ },
+ {
+  "date": "2026-08-05",
+  "ticker": "VST",
+  "name": "Vistra",
+  "level": "买入",
+  "signal": "破150日布林",
+  "window": "5年+2年",
+  "entry_close": 140.58,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
  }
 ]
