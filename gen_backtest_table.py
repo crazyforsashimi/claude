@@ -36,6 +36,7 @@ NAMES = {
     "AMD": "超微", "MU": "美光", "QCOM": "高通", "NET": "Cloudflare", "SNOW": "Snowflake",
     "VST": "Vistra", "NEE": "新纪元", "GEV": "GE Vernova", "CAT": "卡特彼勒", "COIN": "Coinbase",
     "BABA": "阿里", "GS": "高盛", "MS": "摩根士丹利", "QQQ": "纳指100", "SPY": "标普500", "SOXX": "半导体ETF",
+    "XLU": "公用事业ETF",
 }
 def main():
     d = pd.read_csv(DATA).sort_values(["ticker", "date"]).reset_index(drop=True)

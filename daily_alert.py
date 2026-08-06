@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""每日大机会告警——供 GitHub Actions 定时运行：拉 31 标的最新数据，检测买入/卖出信号，
+"""每日大机会告警——供 GitHub Actions 定时运行：拉 32 标的最新数据，检测买入/卖出信号，
 有触发才推送(微信 Server酱 / 邮件)，无触发不打扰。
 
 复用 build_dataset 的取数与指标逻辑，信号口径与工具 index.html、回测 edge_scanner 完全一致：
@@ -205,6 +205,7 @@ NAMES = {
     "AMD": "超微", "MU": "美光", "QCOM": "高通", "NET": "Cloudflare", "SNOW": "Snowflake",
     "VST": "Vistra", "NEE": "新纪元", "GEV": "GE Vernova", "CAT": "卡特彼勒", "COIN": "Coinbase",
     "BABA": "阿里", "GS": "高盛", "MS": "摩根士丹利", "QQQ": "纳指100", "SPY": "标普500", "SOXX": "半导体ETF",
+    "XLU": "公用事业ETF",
 }
 
 
@@ -433,7 +434,7 @@ def build_messages(asof, groups):
             '<div style="font-size:20px;font-weight:700;letter-spacing:.3px">⚡ 自选股机会信号</div>'
             f'<div style="color:#8a9099;font-size:13px;margin:4px 0 22px">数据截至 {asof}</div>{sections}'
             '<div style="color:#aab0b8;font-size:11px;border-top:1px solid #eef0f2;padding-top:14px;'
-            'line-height:1.7">规则来自 edge_scanner 对 31 标的近 5 年回溯：买入=历史高胜率抄底信号；'
+            'line-height:1.7">规则来自 edge_scanner 对 32 标的近 5 年回溯：买入=历史高胜率抄底信号；'
             '卖出仅供止盈参考、<b>非做空</b>。RSI 为日线 14 周期（Wilder 平滑）。'
             '<br>本邮件由 GitHub Actions 自动发送，请勿回复。</div></div>')
     return md_txt, html

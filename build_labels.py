@@ -45,7 +45,7 @@ TICKERS = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "MCD", "TSM"
            "JPM", "CEG", "AVGO", "BRK-B", "LEU", "LLY",
            "AMD", "MU", "QCOM", "NET", "SNOW", "VST", "NEE", "GEV", "CAT", "COIN",
            "BABA", "GS", "MS", "SOXX",
-           "QQQ", "SPY"]
+           "QQQ", "SPY", "XLU"]
 
 # ---- 特征白名单：只含无量纲/相对/有界的列，跨标的可比，无前视偏差 ----
 # 技术面核心（要求非空才算 trainable）：

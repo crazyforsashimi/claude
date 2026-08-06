@@ -98,15 +98,15 @@
   <p class="lede"><b style="color:var(--ink)">每只标的用自己的数据校准</b>最适合它的 <b style="color:var(--ink)">RSI 阈值</b> 与 <b style="color:var(--ink)">布林下轨周期</b>——因为固定 RSI&lt;20/25、固定100布林对不同标的效果<b style="color:var(--ink)">天差地别</b>。判定用<b style="color:var(--ink)">原始胜率</b>而非重罚小样本的 Wilson 下界,理念是 <b style="color:var(--ink)">N 小 = 极端罕见 = 大机会</b>。<b style="color:var(--ink)">两个窗口并行</b>:<b>5年</b>(长期极端、质量硬) + <b>2年</b>(近期敏感、抓当下情绪,门槛通常更宽松),触发任一套即提示、标注是哪套,<b>「5年+2年都触发」</b>共振信号更强。事件闸门再给买入信号叠一层过滤,避开财报暴雷坑。</p>
 
   <div class="split">
-    <b>26 只有信号档</b>(RSI+布林双源 / 仅RSI / 仅布林)　·　<b>5 只无信号</b>诚实留空<br>
-    <span class="names">无信号:AMD · BABA · COIN · MS · TSM(RSI/布林任何参数都不达标)</span>
+    <b>31 只有信号档</b>(RSI+布林双源 / 仅RSI / 仅布林)　·　<b>1 只无信号</b>诚实留空<br>
+    <span class="names">5年窗口 28 只有档,仅2年窗口有档:AMD · MS · TSM　·　无信号:COIN(RSI/布林任何参数都不达标)</span>
   </div>
 
   <!-- 校准标准 -->
   <section class="card">
     <header>
       <h2>🎯 校准标准 · 原始胜率(多持有期达标)</h2>
-      <span class="sub">对31只一视同仁 · 候选 RSI 14–30 / 布林 20–200日 · 触发后看 5/10/20 日方向胜率</span>
+      <span class="sub">对32只一视同仁 · 候选 RSI 14–30 / 布林 20–200日 · 触发后看 5/10/20 日方向胜率</span>
     </header>
     <div class="rules">
       <div class="rule">
@@ -177,7 +177,7 @@
   </div>
 
   <div class="foot">
-    <b>数据来源</b>　<code>gen_signal_config.py</code> 对 31 标的近 5 年日线 per-ticker 校准 RSI 阈值 + 布林周期,判定用<b>原始胜率(多持有期达标)</b>而非 Wilson 下界(涨=触发后 N 日上涨概率)。RSI 为日线 14 周期(Wilder 平滑)。<br>
+    <b>数据来源</b>　<code>gen_signal_config.py</code> 对 32 标的近 5 年日线 per-ticker 校准 RSI 阈值 + 布林周期,判定用<b>原始胜率(多持有期达标)</b>而非 Wilson 下界(涨=触发后 N 日上涨概率)。RSI 为日线 14 周期(Wilder 平滑)。<br>
     <b>个股回溯率(悬浮/邮件显示)</b>　每条信号附该标的自己的历史回溯,给 <b>5日 / 10日 / 20日 三个持有期</b>的方向胜率(同一批信号、以20日valid为准)——看反弹节奏而非只看终点。如 GEV 破50日布林:先反弹再探底再回正;MCD 强买入 100/100/100。N 小甚至=1 也保留:由 N 自证其罕见=极端,不冒充 edge。<br>
     <b>事件闸门数据源</b>　财报公布日取 <code>/vX/reference/financials</code> 的 <code>filing_date</code>——季报(10-Q)精确,年报季(10-K)常缺 → 用 <code>end_date+50 天</code>近似(标"近似");单日跌幅用日线现算、100% 可靠。云端限速拉不到财报时标"财报日期未知"、不拦买入。<br>
     <b>已知盲区(财报当天)</b>　财报当天/次日,新季 <code>filing_date</code> 还没进数据源(T+1~数天才入库),此刻最该警示的"财报当天暴雷"反而认不出——而 Starter 档拿不到前瞻财报日历(Benzinga 端点 403)。**不用"当天大阴线"兜底**:回测显示纯大阴线抄底反而更准(单日 −8% 达 80%),只有"财报造成的"大阴线才有毒,兜底会误伤好机会。折中:当距最近已知财报 &gt;85 天(下季可能已发未入库)且触发买入时,附**中性提示 ℹ️「财报数据仅到 X,请自行核对是否刚发财报」**——不标坑、不改判断、不误伤,只提醒你多看一眼。<br>

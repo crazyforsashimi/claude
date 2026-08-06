@@ -198,6 +198,7 @@ const UNIVERSE = [
   {t:"QQQ",   n:"纳指100ETF", g:"ETF",      etf:true},
   {t:"SPY",   n:"标普500ETF", g:"ETF",      etf:true},
   {t:"SOXX",  n:"半导体ETF",  g:"ETF",      etf:true},
+  {t:"XLU",   n:"公用事业ETF", g:"ETF",     etf:true},
 ];
 
 const COLS = [
@@ -735,9 +736,9 @@ function renderFoot(){
   document.getElementById("foot").innerHTML=`
     <b>数据说明</b>（Massive/Polygon Starter，按最近收盘实时计算）<br>
     • <b>技术面</b>（RSI/KDJ/MACD/BOLL/均线）由复权日线按标准公式算，悬停单元格看完整数值。高亮 <span class="pill p-red" style="padding:0 5px">红=超买/看空</span> <span class="pill p-green" style="padding:0 5px">绿=超卖/金叉</span> <span style="color:var(--amber)">琥珀=关键位</span>：RSI ≥70/≤30；KDJ K≥80或J≥100 / K≤20或J≤0，标金叉死叉；MACD 金叉死叉·柱值(正绿负红)·零轴多空；BOLL 按%B分五档；均线 MA20/50/200 多空排列，距关键均线≤1.5% 标「测MAxx」；量价=OBV 资金流向(近20日 z-score，>1 流入绿 / <−1 流出红)；背离=价创20日新高/低而 RSI 未跟随(顶背离红=回调预警 / 底背离绿=转强预警)。<br>
-    • <b>⚡机会</b>（<code>gen_signal_config.py</code> <b>per-ticker 校准</b>，每标的用自己近5年数据定制 RSI 阈值/布林周期）：<span class="pill sig-buy">强买入★</span> 该标的 RSI&lt;校准阈值 或 破深周期布林下轨（5/10/20日回溯 <b>两个&gt;95% 且 三个&gt;55%</b>） · <span class="pill sig-buy">买入</span> 同类但门槛 <b>两个&gt;80%</b> · <span class="pill sig-trim">卖出</span> PE分位&gt;95且RSI(14)&gt;70(仅非高波动股，止盈非做空)。<b>理念</b>：N 小=极端罕见=大机会，用原始胜率作硬指标(非 Wilson 下界)。26 只有档、5 只无信号(诚实留空)；固定100布林/dip/均线经测试不达标已弃。<b>事件闸门</b>：买入信号踩「财报暴雷坑」标 <b>⚠️</b>(近15天财报日+当日大阴线&lt;−6%，慎接飞刀)。<br>
+    • <b>⚡机会</b>（<code>gen_signal_config.py</code> <b>per-ticker 校准</b>，每标的用自己近5年数据定制 RSI 阈值/布林周期）：<span class="pill sig-buy">强买入★</span> 该标的 RSI&lt;校准阈值 或 破深周期布林下轨（5/10/20日回溯 <b>两个&gt;95% 且 三个&gt;55%</b>） · <span class="pill sig-buy">买入</span> 同类但门槛 <b>两个&gt;80%</b> · <span class="pill sig-trim">卖出</span> PE分位&gt;95且RSI(14)&gt;70(仅非高波动股，止盈非做空)。<b>理念</b>：N 小=极端罕见=大机会，用原始胜率作硬指标(非 Wilson 下界)。31 只有档、1 只无信号(COIN，诚实留空)；固定100布林/dip/均线经测试不达标已弃。<b>事件闸门</b>：买入信号踩「财报暴雷坑」标 <b>⚠️</b>(近15天财报日+当日大阴线&lt;−6%，慎接飞刀)。<br>
     • <b>估值</b>：市盈率TTM = 收盘价 ÷ 摊薄EPS(TTM)（无摊薄EPS时 = 市值 ÷ 归母净利润，如伯克希尔）；近5年分位 = 复权5年日线 ÷ 拆股还原TTM EPS 的历史PE百分位，与富途基本一致（多数差≤3）。<b>算不出时显示「—」缺失，绝不用静态值冒充</b>——如历史不足5年、无摊薄EPS(BRK.B)、缺季致TTM滞后。<br>
-    • <b style="color:var(--blue)">ˢ</b> = Polygon 漏收某巨头最新季报时已用 SEC 官方 EPS 修正（补上自动切回）；<b style="color:var(--amber)">*</b> = 财报滞后警告（当前无）；<b>ETF</b>(QQQ/SPY) 无财报，仅价格指标。<br>
+    • <b style="color:var(--blue)">ˢ</b> = Polygon 漏收某巨头最新季报时已用 SEC 官方 EPS 修正（补上自动切回）；<b style="color:var(--amber)">*</b> = 财报滞后警告（当前无）；<b>ETF</b>(QQQ/SPY/SOXX/XLU) 无财报，仅价格指标——卖出信号(需PE分位)与财报事件闸门对它们天然不触发，只走 RSI/布林买入档。<br>
     • 结果缓存于浏览器本地，财报缓存 ${FIN_TTL_DAYS} 天；重开即时显示。`;
 }
 function setFilter(g){ filter=g; render(); }

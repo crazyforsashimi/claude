@@ -42,6 +42,8 @@ UNIVERSE = [
     ("VST", False), ("NEE", False), ("GEV", False), ("CAT", False), ("COIN", False),
     ("BABA", False), ("GS", False), ("MS", False),
     ("QQQ", True), ("SPY", True), ("SOXX", True),
+    # v30 加入：公用事业板块 ETF。低波动均值回归型，与科技/半导体池负相关，补防守端观察位
+    ("XLU", True),
 ]
 
 YEARS_BACK = 5
