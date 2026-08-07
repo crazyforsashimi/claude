@@ -8,7 +8,7 @@
   "window": "2年",
   "entry_close": 321.52,
   "fwd5": -0.053,
-  "fwd10": null,
+  "fwd10": -0.0062,
   "fwd20": null
  },
  {
@@ -20,7 +20,7 @@
   "window": "2年",
   "entry_close": 262.24,
   "fwd5": 0.0203,
-  "fwd10": null,
+  "fwd10": 0.0535,
   "fwd20": null
  },
  {
@@ -91,7 +91,7 @@
   "signal": "破200日布林",
   "window": "5年+2年",
   "entry_close": 532.78,
-  "fwd5": null,
+  "fwd5": 0.1072,
   "fwd10": null,
   "fwd20": null
  },
@@ -103,7 +103,7 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 304.49,
-  "fwd5": null,
+  "fwd5": 0.0494,
   "fwd10": null,
   "fwd20": null
  },
@@ -175,6 +175,30 @@
   "signal": "破150日布林",
   "window": "5年+2年",
   "entry_close": 140.58,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-08-06",
+  "ticker": "TSLA",
+  "name": "特斯拉",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 319.53,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-08-06",
+  "ticker": "XLU",
+  "name": "公用事业ETF",
+  "level": "买入",
+  "signal": "破20日布林",
+  "window": "2年",
+  "entry_close": 43.38,
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
