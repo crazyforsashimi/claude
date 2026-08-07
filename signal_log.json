@@ -32,7 +32,7 @@
   "window": "2年",
   "entry_close": 310.63,
   "fwd5": -0.0115,
-  "fwd10": null,
+  "fwd10": 0.057,
   "fwd20": null
  },
  {
@@ -115,7 +115,7 @@
   "signal": "破200日布林",
   "window": "5年+2年",
   "entry_close": 544.3,
-  "fwd5": null,
+  "fwd5": 0.0886,
   "fwd10": null,
   "fwd20": null
  },
@@ -127,7 +127,7 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 307.04,
-  "fwd5": null,
+  "fwd5": 0.0694,
   "fwd10": null,
   "fwd20": null
  },
@@ -199,6 +199,18 @@
   "signal": "破20日布林",
   "window": "2年",
   "entry_close": 43.38,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-08-07",
+  "ticker": "VST",
+  "name": "Vistra",
+  "level": "买入",
+  "signal": "破150日布林",
+  "window": "5年+2年",
+  "entry_close": 137.2,
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
