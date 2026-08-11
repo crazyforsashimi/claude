@@ -56,7 +56,7 @@
   "window": "2年",
   "entry_close": 306.81,
   "fwd5": 0.0557,
-  "fwd10": null,
+  "fwd10": 0.0869,
   "fwd20": null
  },
  {
@@ -151,7 +151,7 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 323.91,
-  "fwd5": null,
+  "fwd5": 0.0295,
   "fwd10": null,
   "fwd20": null
  },
