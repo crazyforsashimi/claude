@@ -68,7 +68,7 @@
   "window": "2年",
   "entry_close": 302.49,
   "fwd5": 0.0693,
-  "fwd10": null,
+  "fwd10": 0.075,
   "fwd20": null
  },
  {
@@ -80,7 +80,7 @@
   "window": "2年",
   "entry_close": 788.0,
   "fwd5": 0.1347,
-  "fwd10": null,
+  "fwd10": 0.0956,
   "fwd20": null
  },
  {
@@ -163,7 +163,7 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 323.45,
-  "fwd5": null,
+  "fwd5": 0.0054,
   "fwd10": null,
   "fwd20": null
  },
@@ -175,7 +175,7 @@
   "signal": "破150日布林",
   "window": "5年+2年",
   "entry_close": 140.58,
-  "fwd5": null,
+  "fwd5": 0.0448,
   "fwd10": null,
   "fwd20": null
  },
