@@ -152,7 +152,7 @@
   "window": "2年",
   "entry_close": 323.91,
   "fwd5": 0.0295,
-  "fwd10": null,
+  "fwd10": 0.0421,
   "fwd20": null
  },
  {
@@ -224,6 +224,18 @@
   "window": "2年",
   "entry_close": 327.02,
   "fwd5": 0.0597,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-08-18",
+  "ticker": "META",
+  "name": "Meta",
+  "level": "强买入",
+  "signal": "破200日布林",
+  "window": "5年+2年",
+  "entry_close": 548.36,
+  "fwd5": null,
   "fwd10": null,
   "fwd20": null
  }
