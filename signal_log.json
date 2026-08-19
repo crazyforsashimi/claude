@@ -164,7 +164,7 @@
   "window": "2年",
   "entry_close": 323.45,
   "fwd5": 0.0054,
-  "fwd10": null,
+  "fwd10": 0.0493,
   "fwd20": null
  },
  {
@@ -176,7 +176,7 @@
   "window": "5年+2年",
   "entry_close": 140.58,
   "fwd5": 0.0448,
-  "fwd10": null,
+  "fwd10": -0.0152,
   "fwd20": null
  },
  {
@@ -235,6 +235,30 @@
   "signal": "破200日布林",
   "window": "5年+2年",
   "entry_close": 548.36,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-08-19",
+  "ticker": "META",
+  "name": "Meta",
+  "level": "强买入",
+  "signal": "破200日布林",
+  "window": "5年+2年",
+  "entry_close": 545.02,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-08-19",
+  "ticker": "VST",
+  "name": "Vistra",
+  "level": "买入",
+  "signal": "破150日布林",
+  "window": "5年+2年",
+  "entry_close": 138.44,
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
