@@ -9,7 +9,7 @@
   "entry_close": 321.52,
   "fwd5": -0.053,
   "fwd10": -0.0062,
-  "fwd20": null
+  "fwd20": 0.0685
  },
  {
   "date": "2026-07-23",
@@ -21,7 +21,7 @@
   "entry_close": 262.24,
   "fwd5": 0.0203,
   "fwd10": 0.0535,
-  "fwd20": null
+  "fwd20": 0.0308
  },
  {
   "date": "2026-07-24",
@@ -188,7 +188,7 @@
   "window": "2年",
   "entry_close": 319.53,
   "fwd5": 0.0425,
-  "fwd10": null,
+  "fwd10": 0.0751,
   "fwd20": null
  },
  {
@@ -200,7 +200,7 @@
   "window": "2年",
   "entry_close": 43.38,
   "fwd5": 0.0172,
-  "fwd10": null,
+  "fwd10": 0.0174,
   "fwd20": null
  },
  {
@@ -259,6 +259,18 @@
   "signal": "破150日布林",
   "window": "5年+2年",
   "entry_close": 138.44,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-08-20",
+  "ticker": "META",
+  "name": "Meta",
+  "level": "强买入",
+  "signal": "破200日布林",
+  "window": "5年+2年",
+  "entry_close": 544.89,
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
