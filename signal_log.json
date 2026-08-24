@@ -45,7 +45,7 @@
   "entry_close": 307.8,
   "fwd5": 0.0503,
   "fwd10": 0.0752,
-  "fwd20": null
+  "fwd20": 0.1498
  },
  {
   "date": "2026-07-28",
@@ -283,6 +283,18 @@
   "signal": "破150日布林",
   "window": "5年+2年",
   "entry_close": 138.0,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-08-24",
+  "ticker": "VST",
+  "name": "Vistra",
+  "level": "买入",
+  "signal": "破150日布林",
+  "window": "5年+2年",
+  "entry_close": 135.49,
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
