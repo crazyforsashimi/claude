@@ -57,7 +57,7 @@
   "entry_close": 306.81,
   "fwd5": 0.0557,
   "fwd10": 0.0869,
-  "fwd20": null
+  "fwd20": 0.1428
  },
  {
   "date": "2026-07-29",
@@ -235,7 +235,7 @@
   "signal": "破200日布林",
   "window": "5年+2年",
   "entry_close": 548.36,
-  "fwd5": null,
+  "fwd5": 0.0277,
   "fwd10": null,
   "fwd20": null
  },
