@@ -117,7 +117,7 @@
   "entry_close": 544.3,
   "fwd5": 0.0886,
   "fwd10": 0.0956,
-  "fwd20": null
+  "fwd20": 0.0749
  },
  {
   "date": "2026-07-31",
@@ -129,7 +129,7 @@
   "entry_close": 307.04,
   "fwd5": 0.0694,
   "fwd10": 0.1286,
-  "fwd20": null
+  "fwd20": 0.1476
  },
  {
   "date": "2026-08-03",
@@ -283,7 +283,7 @@
   "signal": "破150日布林",
   "window": "5年+2年",
   "entry_close": 138.0,
-  "fwd5": null,
+  "fwd5": 0.0116,
   "fwd10": null,
   "fwd20": null
  },
@@ -307,6 +307,18 @@
   "signal": "破50日布林",
   "window": "2年",
   "entry_close": 260.06,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-08-28",
+  "ticker": "NEE",
+  "name": "新纪元",
+  "level": "强买入",
+  "signal": "RSI(14)<28",
+  "window": "2年",
+  "entry_close": 82.15,
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
