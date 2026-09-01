@@ -153,7 +153,7 @@
   "entry_close": 323.91,
   "fwd5": 0.0295,
   "fwd10": 0.0421,
-  "fwd20": null
+  "fwd20": 0.1028
  },
  {
   "date": "2026-08-05",
@@ -236,7 +236,7 @@
   "window": "5年+2年",
   "entry_close": 548.36,
   "fwd5": 0.0277,
-  "fwd10": null,
+  "fwd10": 0.0598,
   "fwd20": null
  },
  {
@@ -343,6 +343,42 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 42.27,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-01",
+  "ticker": "GEV",
+  "name": "GE Vernova",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "5年+2年",
+  "entry_close": 890.72,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-01",
+  "ticker": "CAT",
+  "name": "卡特彼勒",
+  "level": "买入",
+  "signal": "破20日布林",
+  "window": "2年",
+  "entry_close": 775.21,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-01",
+  "ticker": "XLU",
+  "name": "公用事业ETF",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 42.24,
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
