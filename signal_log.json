@@ -189,7 +189,7 @@
   "entry_close": 319.53,
   "fwd5": 0.0425,
   "fwd10": 0.0751,
-  "fwd20": null
+  "fwd20": 0.1973
  },
  {
   "date": "2026-08-06",
@@ -201,7 +201,7 @@
   "entry_close": 43.38,
   "fwd5": 0.0172,
   "fwd10": 0.0174,
-  "fwd20": null
+  "fwd20": -0.008
  },
  {
   "date": "2026-08-07",
@@ -272,7 +272,7 @@
   "window": "5年+2年",
   "entry_close": 544.89,
   "fwd5": 0.0481,
-  "fwd10": null,
+  "fwd10": 0.1258,
   "fwd20": null
  },
  {
@@ -307,7 +307,7 @@
   "signal": "破50日布林",
   "window": "2年",
   "entry_close": 260.06,
-  "fwd5": null,
+  "fwd5": -0.0042,
   "fwd10": null,
   "fwd20": null
  },
