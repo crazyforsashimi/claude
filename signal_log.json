@@ -442,5 +442,17 @@
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
+ },
+ {
+  "date": "2026-09-10",
+  "ticker": "XLU",
+  "name": "公用事业ETF",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 42.52,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
  }
 ]
