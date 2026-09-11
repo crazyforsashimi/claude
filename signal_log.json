@@ -308,7 +308,7 @@
   "window": "2年",
   "entry_close": 260.06,
   "fwd5": -0.0042,
-  "fwd10": null,
+  "fwd10": -0.0266,
   "fwd20": null
  },
  {
@@ -451,6 +451,18 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 42.52,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-11",
+  "ticker": "MCD",
+  "name": "麦当劳",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "2年",
+  "entry_close": 253.15,
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
