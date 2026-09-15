@@ -550,5 +550,17 @@
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
+ },
+ {
+  "date": "2026-09-15",
+  "ticker": "MCD",
+  "name": "麦当劳",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "2年",
+  "entry_close": 252.78,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
  }
 ]
