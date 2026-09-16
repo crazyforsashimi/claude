@@ -2,10 +2,18 @@ name: 每日大机会告警
 
 on:
   schedule:
-    # 每交易日盘中扫 3 次(UTC；夏令时 EDT=UTC−4)：早盘~10:00 / 中盘~13:00 / 尾盘~15:45 美东
-    - cron: "0 14 * * 1-5"
-    - cron: "0 17 * * 1-5"
-    - cron: "45 19 * * 1-5"
+    # ⚠️ GitHub 的 schedule 是"尽力而为"：实测本仓库排队延迟 2.1~4.9 小时(中位 2.3~3.8h)，
+    # 且延迟随 UTC 时间推移递减、整点(:00)最拥挤——官方文档明确建议避开整点。
+    # 故：①全部避开整点 ②按实测中位延迟提前排定，让实际落点贴近目标时段 ③加一条收盘后兜底。
+    # 实测基准(2026-09 上旬)：11时段≈+3.8h · 14时段≈+2.8h · 17时段≈+2.3h
+    #
+    # 排定(UTC)          预计实际(UTC)      预计实际(美东 EDT)   用途
+    - cron: "17 11 * * 1-5"   # ≈15:00        ≈11:00 ET        早盘
+    - cron: "23 14 * * 1-5"   # ≈16:50        ≈12:50 ET        中盘
+    - cron: "37 17 * * 1-5"   # ≈19:50        ≈15:50 ET        尾盘
+    - cron: "43 20 * * 1-5"   # ≈23:00        ≈19:00 ET        收盘后确认 + 前三次的兜底
+    # 最后一条最重要：拿到的是**确认收盘价**，盘中扫描的 RSI/破位都可能尾盘收回。
+    # 四条也互为冗余：任一次被丢弃，后面还有(当日去重靠 last_alert.json 指纹，不会重复推送)。
   workflow_dispatch:   # 允许在 Actions 页手动点「Run workflow」
     inputs:
       test:
@@ -47,7 +55,20 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add signal_log.json forward_report.html last_alert.json signal_overrides.json
-          git diff --staged --quiet && exit 0            # 无新触发/无补算/无推送 → 不提交
+          # 心跳：GitHub 会自动禁用「连续 60 天无仓库活动」的定时工作流，且不发通知。
+          # 而本工作流只在出信号时才有 diff —— 长期无信号 = 仓库静默 = 定时器被悄悄关掉，
+          # 恰恰在"行情平静所以没信号"之后，真出机会时它已经死了。故距上次提交超过 14 天就
+          # 写一次心跳强制产生提交，保证活跃度。平时仍是无 diff 不提交，不会刷屏。
+          if [ -z "$(git diff --staged --name-only)" ]; then
+            age=$(( ( $(date +%s) - $(git log -1 --format=%ct) ) / 86400 ))
+            if [ "$age" -lt 14 ]; then
+              echo "无变更且距上次提交仅 ${age} 天，跳过提交"
+              exit 0
+            fi
+            echo "无变更但距上次提交已 ${age} 天 → 写心跳，防定时器被 60 天规则禁用"
+            date -u +'{"last_heartbeat":"%Y-%m-%dT%H:%M:%SZ"}' > .github/heartbeat.json
+            git add .github/heartbeat.json
+          fi
           git commit -m "chore: forward 记录 + 报告更新 [skip ci]"
           git pull --rebase --autostash origin main || true   # 避免与其它 commit 冲突
           git push
