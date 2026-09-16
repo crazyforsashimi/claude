@@ -610,5 +610,17 @@
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
+ },
+ {
+  "date": "2026-09-16",
+  "ticker": "NEE",
+  "name": "新纪元",
+  "level": "强买入",
+  "signal": "RSI(14)<28",
+  "window": "2年",
+  "entry_close": 80.03,
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
  }
 ]
