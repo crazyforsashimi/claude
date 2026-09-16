@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 
 import build_dataset as bd   # 复用取数/指标/估值逻辑，口径一致
+import signal_review as sr   # 滚动失效：把真实前瞻结果并入回测重算，不达门槛的档自动停用
 from event_dedup import event_reps   # 统计独立事件数(展示用，不改胜率/触发口径)
 
 # per-ticker 信号配置(RSI 阈值 + 布林周期)——gen_signal_config.py 校准生成，与工具 index.html 同源
@@ -121,9 +122,9 @@ def save_log(log):
     json.dump(log, open(LOG_PATH, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
 
-def sig_short(kind, cw):
-    """信号简称 → (级别, 信号文字)。"""
-    lvl = "强买入" if kind.endswith("_s") else "买入"
+def sig_short(kind, cw, level=None):
+    """信号简称 → (级别, 信号文字)。level 显式传入时以它为准——降级档(原 *_s)按买入级别推送。"""
+    lvl = ("强买入" if level == "s" else "买入") if level else ("强买入" if kind.endswith("_s") else "买入")
     if kind == "rsi_s":
         return lvl, f"RSI(14)<{cw['rsi']['s']}"
     if kind == "rsi_b":
@@ -271,15 +272,17 @@ def latest_metrics(tk: str, is_etf: bool, key: str, s: str, e: str):
                               "f5": fwd[5], "f10": fwd[10], "f20": fwd[20]})
 
     def pstat(mask, vmask):
-        """[触发次数, 5/10/20日胜率%, 独立事件数]。胜率/次数按全部触发(原口径)；独立事件数仅展示——
-        连续破位(相邻 ≤20 交易日)合并为一波，看高胜率是否靠少数几波撑起。"""
+        """[触发次数, 5/10/20日胜率%, 独立事件数, 5/10/20日胜数]。胜率/次数按全部触发(原口径)；
+        独立事件数仅展示——连续破位(相邻 ≤20 交易日)合并为一波，看高胜率是否靠少数几波撑起。
+        末尾三项胜数供 signal_review 合并前瞻样本时重算(避免用四舍五入后的百分比反推)。"""
         mm = (mask & vmask).fillna(False)
         n = int(mm.sum())
         if not n:
-            return [0, None, None, None, 0]
+            return [0, None, None, None, 0, 0, 0, 0]
         pos = np.where(mm.values)[0]
         ev = len(event_reps(list(pos), list(df["rsi14"].values[pos])))
-        return [n] + [round((fwd[h][mm] > 0).mean() * 100) for h in (5, 10, 20)] + [ev]
+        wins = [int((fwd[h][mm] > 0).sum()) for h in (5, 10, 20)]
+        return [n] + [round(w / n * 100) for w in wins] + [ev] + wins
 
     cfg5 = cfg2 = None
     ts5, tr5, ts2, tr2 = {}, {}, {}, {}   # 必须各自独立 dict(别名会让 tr[k]=bool 覆盖 ts[k]=[N,...])
@@ -467,6 +470,8 @@ def main():
     n_fail = 0
     log = load_log()                     # forward tracking：记录每次触发 + 补算历史 pending 的 5/10/20 日表现
     logged = {(r["date"], r["ticker"], r["signal"], r["window"]) for r in log}
+    ov = sr.load_overrides()             # 滚动失效：被复核判定为失效的档，本次扫描不推送(仍影子记账)
+    hist_stats, dates_index = {}, {}     # 供扫描末尾的复核：主循环已算好，零额外 API
     for tk, is_etf in bd.UNIVERSE:
         time.sleep(0.4)                  # 标的间降频，避免瞬时触发限速
         try:
@@ -486,16 +491,29 @@ def main():
         # 双窗口判定：强买入(级别 s)优先于买入(级别 b)；同级别里 5年/2年任一触发即出，标注是哪套
         cfg5, cfg2 = m.get("cfg5"), m.get("cfg2")
         tr5, tr2, ts5, ts2 = m.get("trig5", {}), m.get("trig2", {}), m.get("tstats5", {}), m.get("tstats2", {})
+        hist_stats[tk] = {"5y": ts5, "2y": ts2}                       # 复核用(历史侧，已算好)
+        dates_index[tk] = {d: i for i, d in enumerate(m["detail_df"]["date"])}   # 复核用(交易日序号)
+        off5, dem5 = sr.slot_states(ov, tk, "5y")
+        off2, dem2 = sr.slot_states(ov, tk, "2y")
 
-        def fired(trig, level):          # 该套该级别触发的档(rsi 优先 boll)，无则 None
-            for kind in (f"rsi_{level}", f"boll_{level}"):
-                if trig.get(kind):
-                    return kind
+        def fired(trig, level, off, dem):
+            """该套该级别触发的档(rsi 优先 boll)，无则 None。
+            停用档一律跳过；降级档(原强买入)不再出强买入，改在买入级别兜底——避免该标的只配了
+            强买入档时因降级而彻底哑掉。"""
+            cands = [f"rsi_{level}", f"boll_{level}"]
+            if level == "b":
+                cands += sorted(dem)     # 降级的 *_s 并入买入级别
+            for kind in cands:
+                if not trig.get(kind) or kind in off:
+                    continue
+                if level == "s" and kind in dem:
+                    continue
+                return kind
             return None
 
         if cfg5 or cfg2:
             for level, bucket in (("s", strong_buy), ("b", buy)):
-                k5, k2 = fired(tr5, level), fired(tr2, level)
+                k5, k2 = fired(tr5, level, off5, dem5), fired(tr2, level, off2, dem2)
                 if not k5 and not k2:
                     continue
                 wins = (["5年"] if k5 else []) + (["2年"] if k2 else [])
@@ -506,20 +524,52 @@ def main():
                     desc, kind, w = sig_desc(k2, cfg2, rsi, ts2[k2], None, lm, "2y"), k2, "2y"
                 bucket.append((tk, name, desc, extract_detail(m, kind, w), wshort))
                 # forward tracking：记这次触发(去重:同一 日期+标的+信号+窗口 只记一次)，之后逐日补算表现
-                lvl, sh = sig_short(kind, cfg5 if w == "5y" else cfg2)
+                lvl, sh = sig_short(kind, cfg5 if w == "5y" else cfg2, level)
                 alert_sigs.append(f"{lvl}|{tk}|{sh}|{wshort}")   # 当日去重指纹
+                lkey = (asof, tk, sh, wshort)
+                if lkey not in logged:
+                    slots = ([f"5y:{k5}"] if k5 else []) + ([f"2y:{k2}"] if k2 else [])
+                    log.append({"date": asof, "ticker": tk, "name": name, "level": lvl, "signal": sh,
+                                "window": wshort, "entry_close": round(m["close"], 2),
+                                "slots": slots,          # 复核按槽位归组；共振时两套各记一份战绩
+                                "fwd5": None, "fwd10": None, "fwd20": None})
+                    logged.add(lkey)
+                break                    # 强买入触发就不再判买入
+        # 影子记账：已停用的档若今日仍触发，照记不推送——没有新数据它永远翻不了身
+        for wk, trig, cw, off in (("5y", tr5, cfg5, off5), ("2y", tr2, cfg2, off2)):
+            for kind in sorted(off):
+                if not (cw and trig.get(kind)):
+                    continue
+                lvl, sh = sig_short(kind, cw)
+                wshort = "5年" if wk == "5y" else "2年"
                 lkey = (asof, tk, sh, wshort)
                 if lkey not in logged:
                     log.append({"date": asof, "ticker": tk, "name": name, "level": lvl, "signal": sh,
                                 "window": wshort, "entry_close": round(m["close"], 2),
+                                "slots": [f"{wk}:{kind}"], "shadow": True,
                                 "fwd5": None, "fwd10": None, "fwd20": None})
                     logged.add(lkey)
-                break                    # 强买入触发就不再判买入
         if tk not in HI_VOL and pe is not None and pe > 95 and rsi > 70:   # 卖出/减仓参考(非高波动股)
             sell.append((tk, name, f"PE分位 {pe:.0f}·RSI(14) {rsi:.1f}", []))
             alert_sigs.append(f"卖出|{tk}|PE>95&RSI>70")   # 当日去重指纹
 
     save_log(log)                        # 持久化 forward 记录(GitHub Action 会 commit signal_log.json)
+
+    # ---- 信号条件滚动复核：每日第一次扫描跑一次(FORCE_REVIEW=true 可强制) ----
+    # 把真实前瞻战绩并入回测样本重算胜率，不达当初校准门槛的档自动停用/回升自动复活。
+    # 历史统计与交易日序号都在主循环里算好了，这里零额外 API；n_fail 过多时跳过，避免用残缺样本误判。
+    if sr.needs_review() and n_fail <= 3:
+        try:
+            cfg_all = json.load(open(_CFG_PATH, encoding="utf-8")) if os.path.exists(_CFG_PATH) else {}
+            slots_state, changes = sr.review_slots(hist_stats, log, cfg_all, dates_index)
+            sr.save_overrides(slots_state, changes)
+            print(sr.describe(changes))
+            if changes:                  # 信号池发生变动是大事，单独推一条，不混在行情提示里
+                body = sr.describe(changes)
+                notify("🔁 信号条件复核：池子有变动", body,
+                       f'<div style="font-family:sans-serif;padding:12px;white-space:pre-wrap">{body}</div>')
+        except Exception as ex:          # 复核永远不能拖垮当日告警
+            print(f"[复核异常，已跳过] {type(ex).__name__}: {ex}")
 
     if n_fail > 3:   # 拉取失败过多(可能云端限速)：明确告警，绝不静默漏报
         warn = f"本次 {n_fail}/{len(bd.UNIVERSE)} 个标的数据拉取失败(疑似限速)，未完整检测、可能漏报信号，请留意。"
