@@ -314,7 +314,7 @@
   "entry_close": 545.02,
   "fwd5": 0.0392,
   "fwd10": 0.0862,
-  "fwd20": null,
+  "fwd20": 0.2383,
   "slots": [
    "5y:boll_s",
    "2y:boll_s"
@@ -330,7 +330,7 @@
   "entry_close": 138.44,
   "fwd5": 0.0222,
   "fwd10": 0.016,
-  "fwd20": null,
+  "fwd20": 0.043,
   "slots": [
    "5y:boll_b",
    "2y:boll_b"
@@ -500,7 +500,7 @@
   "window": "2年",
   "entry_close": 42.49,
   "fwd5": 0.0034,
-  "fwd10": null,
+  "fwd10": -0.022,
   "fwd20": null,
   "slots": [
    "2y:boll_s"
@@ -559,7 +559,7 @@
   "signal": "破50日布林",
   "window": "2年",
   "entry_close": 253.68,
-  "fwd5": null,
+  "fwd5": -0.0166,
   "fwd10": null,
   "fwd20": null,
   "slots": [
@@ -574,7 +574,7 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 42.52,
-  "fwd5": null,
+  "fwd5": -0.0227,
   "fwd10": null,
   "fwd20": null,
   "slots": [
@@ -791,5 +791,50 @@
   "slots": [
    "2y:rsi_s"
   ]
+ },
+ {
+  "date": "2026-09-17",
+  "ticker": "MCD",
+  "name": "麦当劳",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "2年",
+  "entry_close": 249.47,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-17",
+  "ticker": "LEU",
+  "name": "Centrus",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 146.49,
+  "slots": [
+   "2y:boll_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-17",
+  "ticker": "XLU",
+  "name": "公用事业ETF",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 41.55,
+  "slots": [
+   "2y:boll_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
  }
 ]
