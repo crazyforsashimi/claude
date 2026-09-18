@@ -346,7 +346,7 @@
   "entry_close": 544.89,
   "fwd5": 0.0481,
   "fwd10": 0.1258,
-  "fwd20": null,
+  "fwd20": 0.2389,
   "slots": [
    "5y:boll_s",
    "2y:boll_s"
@@ -589,7 +589,7 @@
   "signal": "破50日布林",
   "window": "2年",
   "entry_close": 253.15,
-  "fwd5": null,
+  "fwd5": -0.0121,
   "fwd10": null,
   "fwd20": null,
   "slots": [
@@ -604,7 +604,7 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 42.48,
-  "fwd5": null,
+  "fwd5": -0.0285,
   "fwd10": null,
   "fwd20": null,
   "slots": [
@@ -830,6 +830,36 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 41.55,
+  "slots": [
+   "2y:boll_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-18",
+  "ticker": "LEU",
+  "name": "Centrus",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 144.9,
+  "slots": [
+   "2y:boll_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-18",
+  "ticker": "XLU",
+  "name": "公用事业ETF",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 41.27,
   "slots": [
    "2y:boll_s"
   ],
