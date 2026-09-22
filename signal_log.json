@@ -378,7 +378,7 @@
   "entry_close": 135.49,
   "fwd5": 0.0158,
   "fwd10": 0.1376,
-  "fwd20": null,
+  "fwd20": 0.041,
   "slots": [
    "5y:boll_b",
    "2y:boll_b"
@@ -530,7 +530,7 @@
   "window": "2年",
   "entry_close": 255.71,
   "fwd5": -0.0059,
-  "fwd10": null,
+  "fwd10": -0.0181,
   "fwd20": null,
   "slots": [
    "2y:boll_b"
@@ -680,7 +680,7 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 141.59,
-  "fwd5": null,
+  "fwd5": 0.1065,
   "fwd10": null,
   "fwd20": null,
   "slots": [
@@ -695,7 +695,7 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 41.44,
-  "fwd5": null,
+  "fwd5": -0.017,
   "fwd10": null,
   "fwd20": null,
   "slots": [
@@ -710,7 +710,7 @@
   "signal": "破50日布林",
   "window": "2年",
   "entry_close": 252.78,
-  "fwd5": null,
+  "fwd5": -0.0067,
   "fwd10": null,
   "fwd20": null,
   "slots": [
@@ -922,6 +922,36 @@
   "entry_close": 79.63,
   "slots": [
    "2y:rsi_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-22",
+  "ticker": "JPM",
+  "name": "摩根大通",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "2年",
+  "entry_close": 337.77,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-22",
+  "ticker": "XLU",
+  "name": "公用事业ETF",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 40.73,
+  "slots": [
+   "2y:boll_s"
   ],
   "fwd5": null,
   "fwd10": null,
