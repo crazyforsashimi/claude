@@ -1138,5 +1138,20 @@
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
+ },
+ {
+  "date": "2026-09-24",
+  "ticker": "MCD",
+  "name": "麦当劳",
+  "level": "强买入",
+  "signal": "RSI(14)<26",
+  "window": "2年",
+  "entry_close": 237.02,
+  "slots": [
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
  }
 ]
