@@ -394,7 +394,7 @@
   "entry_close": 260.06,
   "fwd5": -0.0042,
   "fwd10": -0.0266,
-  "fwd20": null,
+  "fwd20": -0.0902,
   "slots": [
    "2y:boll_b"
   ]
@@ -590,7 +590,7 @@
   "window": "2年",
   "entry_close": 253.15,
   "fwd5": -0.0121,
-  "fwd10": null,
+  "fwd10": -0.0654,
   "fwd20": null,
   "slots": [
    "2y:boll_b"
@@ -605,7 +605,7 @@
   "window": "2年",
   "entry_close": 42.48,
   "fwd5": -0.0285,
-  "fwd10": null,
+  "fwd10": -0.0773,
   "fwd20": null,
   "slots": [
    "2y:boll_s"
@@ -848,7 +848,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0276,
   "fwd10": null,
   "fwd20": null
  },
@@ -863,7 +863,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": -0.0503,
   "fwd10": null,
   "fwd20": null
  },
@@ -878,7 +878,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0512,
   "fwd10": null,
   "fwd20": null
  },
@@ -1147,6 +1147,51 @@
   "signal": "RSI(14)<26",
   "window": "2年",
   "entry_close": 237.02,
+  "slots": [
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-25",
+  "ticker": "MCD",
+  "name": "麦当劳",
+  "level": "强买入",
+  "signal": "RSI(14)<26",
+  "window": "2年",
+  "entry_close": 236.6,
+  "slots": [
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-25",
+  "ticker": "NEE",
+  "name": "新纪元",
+  "level": "强买入",
+  "signal": "RSI(14)<28",
+  "window": "2年",
+  "entry_close": 75.57,
+  "slots": [
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-25",
+  "ticker": "XLU",
+  "name": "公用事业ETF",
+  "level": "强买入",
+  "signal": "RSI(14)<28",
+  "window": "2年",
+  "entry_close": 39.2,
   "slots": [
    "2y:rsi_s"
   ],
