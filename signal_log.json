@@ -455,7 +455,7 @@
   "entry_close": 890.72,
   "fwd5": 0.0718,
   "fwd10": 0.0415,
-  "fwd20": null,
+  "fwd20": 0.0752,
   "slots": [
    "5y:boll_b",
    "2y:boll_b"
@@ -471,7 +471,7 @@
   "entry_close": 775.21,
   "fwd5": 0.0547,
   "fwd10": 0.0185,
-  "fwd20": null,
+  "fwd20": 0.0522,
   "slots": [
    "2y:boll_b"
   ]
@@ -486,7 +486,7 @@
   "entry_close": 42.24,
   "fwd5": 0.0157,
   "fwd10": -0.0186,
-  "fwd20": null,
+  "fwd20": -0.062,
   "slots": [
    "2y:boll_s"
   ]
@@ -726,7 +726,7 @@
   "window": "2年",
   "entry_close": 251.57,
   "fwd5": -0.0527,
-  "fwd10": null,
+  "fwd10": -0.0731,
   "fwd20": null,
   "slots": [
    "2y:boll_b"
@@ -741,7 +741,7 @@
   "window": "2年",
   "entry_close": 140.75,
   "fwd5": 0.087,
-  "fwd10": null,
+  "fwd10": 0.006,
   "fwd20": null,
   "slots": [
    "2y:boll_s"
@@ -756,7 +756,7 @@
   "window": "2年",
   "entry_close": 80.65,
   "fwd5": -0.0351,
-  "fwd10": null,
+  "fwd10": -0.0554,
   "fwd20": null,
   "slots": [
    "2y:rsi_b"
@@ -771,7 +771,7 @@
   "window": "2年",
   "entry_close": 41.45,
   "fwd5": -0.0361,
-  "fwd10": null,
+  "fwd10": -0.0441,
   "fwd20": null,
   "slots": [
    "2y:boll_s"
@@ -786,7 +786,7 @@
   "window": "2年",
   "entry_close": 80.03,
   "fwd5": -0.0276,
-  "fwd10": null,
+  "fwd10": -0.0481,
   "fwd20": null,
   "slots": [
    "2y:rsi_s"
@@ -998,7 +998,7 @@
   "slots": [
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": -0.0214,
   "fwd10": null,
   "fwd20": null
  },
@@ -1013,7 +1013,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0161,
   "fwd10": null,
   "fwd20": null
  },
@@ -1028,7 +1028,7 @@
   "slots": [
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": -0.0211,
   "fwd10": null,
   "fwd20": null
  },
@@ -1043,7 +1043,7 @@
   "slots": [
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": -0.0083,
   "fwd10": null,
   "fwd20": null
  },
@@ -1389,6 +1389,97 @@
   "signal": "破150日布林",
   "window": "2年",
   "entry_close": 39.66,
+  "slots": [
+   "2y:boll_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-30",
+  "ticker": "MCD",
+  "name": "麦当劳",
+  "level": "强买入",
+  "signal": "RSI(14)<26",
+  "window": "2年",
+  "entry_close": 233.19,
+  "slots": [
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-30",
+  "ticker": "JPM",
+  "name": "摩根大通",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "2年",
+  "entry_close": 333.12,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-30",
+  "ticker": "NEE",
+  "name": "新纪元",
+  "level": "强买入",
+  "signal": "RSI(14)<28",
+  "window": "2年",
+  "entry_close": 76.18,
+  "slots": [
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-30",
+  "ticker": "GS",
+  "name": "高盛",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "5年+2年",
+  "entry_close": 906.1,
+  "slots": [
+   "5y:boll_b",
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-30",
+  "ticker": "MS",
+  "name": "摩根士丹利",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "2年",
+  "entry_close": 190.56,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-09-30",
+  "ticker": "XLU",
+  "name": "公用事业ETF",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 39.62,
   "slots": [
    "2y:boll_s"
   ],
