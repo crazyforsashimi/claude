@@ -849,7 +849,7 @@
    "2y:boll_s"
   ],
   "fwd5": 0.0276,
-  "fwd10": null,
+  "fwd10": -0.0242,
   "fwd20": null
  },
  {
@@ -864,7 +864,7 @@
    "2y:boll_s"
   ],
   "fwd5": -0.0503,
-  "fwd10": null,
+  "fwd10": -0.0354,
   "fwd20": null
  },
  {
@@ -879,7 +879,7 @@
    "2y:boll_b"
   ],
   "fwd5": -0.0512,
-  "fwd10": null,
+  "fwd10": -0.069,
   "fwd20": null
  },
  {
@@ -1165,7 +1165,7 @@
   "slots": [
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": -0.0187,
   "fwd10": null,
   "fwd20": null
  },
@@ -1180,7 +1180,7 @@
   "slots": [
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0204,
   "fwd10": null,
   "fwd20": null
  },
@@ -1195,7 +1195,7 @@
   "slots": [
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0156,
   "fwd10": null,
   "fwd20": null
  },
@@ -1618,6 +1618,82 @@
   "entry_close": 76.22,
   "slots": [
    "2y:rsi_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-02",
+  "ticker": "MCD",
+  "name": "麦当劳",
+  "level": "强买入",
+  "signal": "RSI(14)<26",
+  "window": "2年",
+  "entry_close": 232.16,
+  "slots": [
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-02",
+  "ticker": "JPM",
+  "name": "摩根大通",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "2年",
+  "entry_close": 330.93,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-02",
+  "ticker": "GS",
+  "name": "高盛",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "5年+2年",
+  "entry_close": 900.8,
+  "slots": [
+   "5y:boll_b",
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-02",
+  "ticker": "MS",
+  "name": "摩根士丹利",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "2年",
+  "entry_close": 190.02,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-02",
+  "ticker": "XLU",
+  "name": "公用事业ETF",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 39.81,
+  "slots": [
+   "2y:boll_s"
   ],
   "fwd5": null,
   "fwd10": null,
