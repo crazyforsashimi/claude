@@ -531,7 +531,7 @@
   "entry_close": 255.71,
   "fwd5": -0.0059,
   "fwd10": -0.0181,
-  "fwd20": null,
+  "fwd20": -0.088,
   "slots": [
    "2y:boll_b"
   ]
@@ -939,7 +939,7 @@
    "2y:boll_b"
   ],
   "fwd5": -0.0105,
-  "fwd10": null,
+  "fwd10": -0.0197,
   "fwd20": null
  },
  {
@@ -954,7 +954,7 @@
    "2y:boll_s"
   ],
   "fwd5": -0.0298,
-  "fwd10": null,
+  "fwd10": 0.0061,
   "fwd20": null
  },
  {
@@ -969,7 +969,7 @@
    "2y:rsi_b"
   ],
   "fwd5": -0.0481,
-  "fwd10": null,
+  "fwd10": -0.0297,
   "fwd20": null
  },
  {
@@ -984,7 +984,7 @@
    "2y:rsi_s"
   ],
   "fwd5": -0.025,
-  "fwd10": null,
+  "fwd10": 0.0111,
   "fwd20": null
  },
  {
@@ -1301,7 +1301,7 @@
   "slots": [
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": -0.0059,
   "fwd10": null,
   "fwd20": null
  },
@@ -1316,7 +1316,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0093,
   "fwd10": null,
   "fwd20": null
  },
@@ -1331,7 +1331,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.1286,
   "fwd10": null,
   "fwd20": null
  },
@@ -1346,7 +1346,7 @@
   "slots": [
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0194,
   "fwd10": null,
   "fwd20": null
  },
@@ -1362,7 +1362,7 @@
    "5y:boll_b",
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0105,
   "fwd10": null,
   "fwd20": null
  },
@@ -1377,7 +1377,7 @@
   "slots": [
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0369,
   "fwd10": null,
   "fwd20": null
  },
@@ -1392,7 +1392,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0333,
   "fwd10": null,
   "fwd20": null
  },
@@ -1801,6 +1801,68 @@
   "slots": [
    "5y:rsi_b",
    "2y:rsi_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-06",
+  "ticker": "MCD",
+  "name": "麦当劳",
+  "level": "买入",
+  "signal": "RSI(14)<28",
+  "window": "5年+2年",
+  "entry_close": 233.21,
+  "slots": [
+   "5y:rsi_b",
+   "2y:rsi_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-06",
+  "ticker": "JPM",
+  "name": "摩根大通",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "2年",
+  "entry_close": 331.12,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-06",
+  "ticker": "GS",
+  "name": "高盛",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "5年+2年",
+  "entry_close": 898.03,
+  "slots": [
+   "5y:boll_b",
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-06",
+  "ticker": "MS",
+  "name": "摩根士丹利",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "2年",
+  "entry_close": 190.77,
+  "slots": [
+   "2y:boll_b"
   ],
   "fwd5": null,
   "fwd10": null,
