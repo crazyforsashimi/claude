@@ -591,7 +591,7 @@
   "entry_close": 253.15,
   "fwd5": -0.0121,
   "fwd10": -0.0654,
-  "fwd20": null,
+  "fwd20": -0.0675,
   "slots": [
    "2y:boll_b"
   ]
@@ -606,7 +606,7 @@
   "entry_close": 42.48,
   "fwd5": -0.0285,
   "fwd10": -0.0773,
-  "fwd20": null,
+  "fwd20": -0.027,
   "slots": [
    "2y:boll_s"
   ]
@@ -1166,7 +1166,7 @@
    "2y:rsi_s"
   ],
   "fwd5": -0.0187,
-  "fwd10": null,
+  "fwd10": -0.0022,
   "fwd20": null
  },
  {
@@ -1181,7 +1181,7 @@
    "2y:rsi_s"
   ],
   "fwd5": 0.0204,
-  "fwd10": null,
+  "fwd10": 0.0245,
   "fwd20": null
  },
  {
@@ -1196,7 +1196,7 @@
    "2y:rsi_s"
   ],
   "fwd5": 0.0156,
-  "fwd10": null,
+  "fwd10": 0.0545,
   "fwd20": null
  },
  {
@@ -1634,7 +1634,7 @@
   "slots": [
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0168,
   "fwd10": null,
   "fwd20": null
  },
@@ -1649,7 +1649,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.0069,
   "fwd10": null,
   "fwd20": null
  },
@@ -1665,7 +1665,7 @@
    "5y:boll_b",
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0125,
   "fwd10": null,
   "fwd20": null
  },
@@ -1680,7 +1680,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0027,
   "fwd10": null,
   "fwd20": null
  },
@@ -1695,7 +1695,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0383,
   "fwd10": null,
   "fwd20": null
  },
@@ -1710,7 +1710,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0144,
   "fwd10": null,
   "fwd20": null
  },
@@ -1968,6 +1968,37 @@
   "signal": "破100日布林",
   "window": "2年",
   "entry_close": 187.62,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-09",
+  "ticker": "GS",
+  "name": "高盛",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "5年+2年",
+  "entry_close": 889.51,
+  "slots": [
+   "5y:boll_b",
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-09",
+  "ticker": "MS",
+  "name": "摩根士丹利",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "2年",
+  "entry_close": 189.5,
   "slots": [
    "2y:boll_b"
   ],
