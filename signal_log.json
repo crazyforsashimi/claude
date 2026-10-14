@@ -2173,5 +2173,21 @@
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
+ },
+ {
+  "date": "2026-10-14",
+  "ticker": "GS",
+  "name": "高盛",
+  "level": "买入",
+  "signal": "RSI(14)<30",
+  "window": "5年+2年",
+  "entry_close": 867.77,
+  "slots": [
+   "5y:rsi_b",
+   "2y:rsi_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
  }
 ]
