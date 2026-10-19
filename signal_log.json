@@ -895,7 +895,7 @@
   ],
   "fwd5": -0.0586,
   "fwd10": -0.0663,
-  "fwd20": null
+  "fwd20": -0.0244
  },
  {
   "date": "2026-09-21",
@@ -910,7 +910,7 @@
   ],
   "fwd5": -0.0383,
   "fwd10": -0.0207,
-  "fwd20": null
+  "fwd20": 0.0148
  },
  {
   "date": "2026-09-21",
@@ -925,7 +925,7 @@
   ],
   "fwd5": -0.0497,
   "fwd10": -0.0415,
-  "fwd20": null
+  "fwd20": -0.0156
  },
  {
   "date": "2026-09-22",
@@ -1726,7 +1726,7 @@
    "2y:rsi_s"
   ],
   "fwd5": 0.0144,
-  "fwd10": null,
+  "fwd10": 0.0449,
   "fwd20": null
  },
  {
@@ -1741,7 +1741,7 @@
    "2y:boll_b"
   ],
   "fwd5": 0.0059,
-  "fwd10": null,
+  "fwd10": 0.0129,
   "fwd20": null
  },
  {
@@ -1757,7 +1757,7 @@
    "2y:boll_b"
   ],
   "fwd5": -0.0004,
-  "fwd10": null,
+  "fwd10": -0.0175,
   "fwd20": null
  },
  {
@@ -1772,7 +1772,7 @@
    "2y:boll_b"
   ],
   "fwd5": -0.0004,
-  "fwd10": null,
+  "fwd10": -0.0543,
   "fwd20": null
  },
  {
@@ -1787,7 +1787,7 @@
    "2y:boll_s"
   ],
   "fwd5": 0.04,
-  "fwd10": null,
+  "fwd10": 0.0363,
   "fwd20": null
  },
  {
@@ -1803,7 +1803,7 @@
    "2y:rsi_b"
   ],
   "fwd5": 0.0112,
-  "fwd10": null,
+  "fwd10": 0.0416,
   "fwd20": null
  },
  {
@@ -2017,7 +2017,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": -0.1864,
   "fwd10": null,
   "fwd20": null
  },
@@ -2033,7 +2033,7 @@
    "5y:boll_b",
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0171,
   "fwd10": null,
   "fwd20": null
  },
@@ -2048,7 +2048,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0539,
   "fwd10": null,
   "fwd20": null
  },
@@ -2321,6 +2321,52 @@
   "entry_close": 880.51,
   "slots": [
    "5y:boll_b",
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-19",
+  "ticker": "LEU",
+  "name": "Centrus",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 110.09,
+  "slots": [
+   "2y:boll_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-19",
+  "ticker": "GS",
+  "name": "高盛",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "5年+2年",
+  "entry_close": 878.68,
+  "slots": [
+   "5y:boll_b",
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-19",
+  "ticker": "MS",
+  "name": "摩根士丹利",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "2年",
+  "entry_close": 179.77,
+  "slots": [
    "2y:boll_b"
   ],
   "fwd5": null,
