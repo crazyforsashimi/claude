@@ -1060,7 +1060,7 @@
   ],
   "fwd5": -0.0379,
   "fwd10": -0.0176,
-  "fwd20": null
+  "fwd20": 0.0404
  },
  {
   "date": "2026-09-24",
@@ -1075,7 +1075,7 @@
   ],
   "fwd5": -0.0115,
   "fwd10": -0.0159,
-  "fwd20": null
+  "fwd20": -0.0043
  },
  {
   "date": "2026-09-24",
@@ -1090,7 +1090,7 @@
   ],
   "fwd5": -0.0039,
   "fwd10": 0.0094,
-  "fwd20": null
+  "fwd20": 0.0602
  },
  {
   "date": "2026-09-24",
@@ -1106,7 +1106,7 @@
   ],
   "fwd5": -0.0261,
   "fwd10": -0.0382,
-  "fwd20": null
+  "fwd20": -0.0276
  },
  {
   "date": "2026-09-24",
@@ -1121,7 +1121,7 @@
   ],
   "fwd5": -0.001,
   "fwd10": 0.0357,
-  "fwd20": null
+  "fwd20": 0.074
  },
  {
   "date": "2026-09-24",
@@ -1137,7 +1137,7 @@
   ],
   "fwd5": -0.0318,
   "fwd10": -0.0113,
-  "fwd20": null
+  "fwd20": 0.047
  },
  {
   "date": "2026-09-24",
@@ -1152,7 +1152,7 @@
   ],
   "fwd5": -0.0225,
   "fwd10": -0.0019,
-  "fwd20": null
+  "fwd20": 0.057
  },
  {
   "date": "2026-09-25",
@@ -1957,7 +1957,7 @@
    "2y:rsi_b"
   ],
   "fwd5": 0.002,
-  "fwd10": null,
+  "fwd10": 0.0111,
   "fwd20": null
  },
  {
@@ -1972,7 +1972,7 @@
    "2y:boll_b"
   ],
   "fwd5": -0.0418,
-  "fwd10": null,
+  "fwd10": -0.0226,
   "fwd20": null
  },
  {
@@ -2201,7 +2201,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": -0.1567,
   "fwd10": null,
   "fwd20": null
  },
@@ -2216,7 +2216,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0498,
   "fwd10": null,
   "fwd20": null
  },
@@ -2232,7 +2232,7 @@
    "5y:boll_b",
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.009,
   "fwd10": null,
   "fwd20": null
  },
@@ -2247,7 +2247,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.02,
   "fwd10": null,
   "fwd20": null
  },
@@ -2456,6 +2456,67 @@
   "signal": "破100日布林",
   "window": "2年",
   "entry_close": 183.29,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-22",
+  "ticker": "LEU",
+  "name": "Centrus",
+  "level": "强买入",
+  "signal": "RSI(14)<28",
+  "window": "2年",
+  "entry_close": 103.76,
+  "slots": [
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-22",
+  "ticker": "GEV",
+  "name": "GE Vernova",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "5年+2年",
+  "entry_close": 820.12,
+  "slots": [
+   "5y:boll_b",
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-22",
+  "ticker": "CAT",
+  "name": "卡特彼勒",
+  "level": "买入",
+  "signal": "RSI(14)<30",
+  "window": "2年",
+  "entry_close": 697.6,
+  "slots": [
+   "2y:rsi_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-22",
+  "ticker": "MS",
+  "name": "摩根士丹利",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "2年",
+  "entry_close": 183.38,
   "slots": [
    "2y:boll_b"
   ],
