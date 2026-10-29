@@ -1515,7 +1515,7 @@
   ],
   "fwd5": 0.0211,
   "fwd10": 0.0505,
-  "fwd20": null
+  "fwd20": 0.1034
  },
  {
   "date": "2026-10-01",
@@ -1530,7 +1530,7 @@
   ],
   "fwd5": -0.0045,
   "fwd10": 0.0081,
-  "fwd20": null
+  "fwd20": 0.0351
  },
  {
   "date": "2026-10-01",
@@ -1545,7 +1545,7 @@
   ],
   "fwd5": 0.0072,
   "fwd10": -0.1096,
-  "fwd20": null
+  "fwd20": -0.1766
  },
  {
   "date": "2026-10-01",
@@ -1560,7 +1560,7 @@
   ],
   "fwd5": 0.0134,
   "fwd10": 0.0352,
-  "fwd20": null
+  "fwd20": 0.0822
  },
  {
   "date": "2026-10-01",
@@ -1576,7 +1576,7 @@
   ],
   "fwd5": -0.0124,
   "fwd10": -0.0104,
-  "fwd20": null
+  "fwd20": 0.0436
  },
  {
   "date": "2026-10-01",
@@ -1591,7 +1591,7 @@
   ],
   "fwd5": 0.0139,
   "fwd10": -0.0285,
-  "fwd20": null
+  "fwd20": 0.0379
  },
  {
   "date": "2026-10-01",
@@ -1606,7 +1606,7 @@
   ],
   "fwd5": 0.0367,
   "fwd10": 0.0524,
-  "fwd20": null
+  "fwd20": 0.0936
  },
  {
   "date": "2026-10-01",
@@ -1621,7 +1621,7 @@
   ],
   "fwd5": 0.0098,
   "fwd10": 0.0316,
-  "fwd20": null
+  "fwd20": 0.0784
  },
  {
   "date": "2026-10-02",
@@ -2202,7 +2202,7 @@
    "2y:boll_s"
   ],
   "fwd5": -0.1567,
-  "fwd10": null,
+  "fwd10": -0.0753,
   "fwd20": null
  },
  {
@@ -2217,7 +2217,7 @@
    "2y:boll_b"
   ],
   "fwd5": -0.0498,
-  "fwd10": null,
+  "fwd10": -0.1063,
   "fwd20": null
  },
  {
@@ -2233,7 +2233,7 @@
    "2y:boll_b"
   ],
   "fwd5": 0.009,
-  "fwd10": null,
+  "fwd10": 0.0547,
   "fwd20": null
  },
  {
@@ -2248,7 +2248,7 @@
    "2y:boll_b"
   ],
   "fwd5": 0.02,
-  "fwd10": null,
+  "fwd10": 0.0683,
   "fwd20": null
  },
  {
@@ -2474,7 +2474,7 @@
   "slots": [
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0966,
   "fwd10": null,
   "fwd20": null
  },
@@ -2490,7 +2490,7 @@
    "5y:boll_b",
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.0903,
   "fwd10": null,
   "fwd20": null
  },
@@ -2505,7 +2505,7 @@
   "slots": [
    "2y:rsi_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0595,
   "fwd10": null,
   "fwd20": null
  },
@@ -2520,7 +2520,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.0473,
   "fwd10": null,
   "fwd20": null
  },
@@ -2535,7 +2535,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.1223,
   "fwd10": null,
   "fwd20": null
  },
@@ -2732,6 +2732,53 @@
   "entry_close": 109.29,
   "slots": [
    "2y:boll_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-29",
+  "ticker": "GOOGL",
+  "name": "谷歌",
+  "level": "强买入",
+  "signal": "RSI(14)<26",
+  "window": "5年+2年",
+  "entry_close": 284.66,
+  "slots": [
+   "5y:rsi_s",
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-29",
+  "ticker": "LEU",
+  "name": "Centrus",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 113.78,
+  "slots": [
+   "2y:boll_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-10-29",
+  "ticker": "CAT",
+  "name": "卡特彼勒",
+  "level": "买入",
+  "signal": "RSI(14)<28",
+  "window": "5年+2年",
+  "entry_close": 656.1,
+  "slots": [
+   "5y:rsi_b",
+   "2y:rsi_b"
   ],
   "fwd5": null,
   "fwd10": null,
