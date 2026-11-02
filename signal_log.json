@@ -1727,7 +1727,7 @@
   ],
   "fwd5": 0.0144,
   "fwd10": 0.0449,
-  "fwd20": null
+  "fwd20": 0.1406
  },
  {
   "date": "2026-10-05",
@@ -1742,7 +1742,7 @@
   ],
   "fwd5": 0.0059,
   "fwd10": 0.0129,
-  "fwd20": null
+  "fwd20": 0.0274
  },
  {
   "date": "2026-10-05",
@@ -1758,7 +1758,7 @@
   ],
   "fwd5": -0.0004,
   "fwd10": -0.0175,
-  "fwd20": null
+  "fwd20": 0.0063
  },
  {
   "date": "2026-10-05",
@@ -1773,7 +1773,7 @@
   ],
   "fwd5": -0.0004,
   "fwd10": -0.0543,
-  "fwd20": null
+  "fwd20": -0.0209
  },
  {
   "date": "2026-10-05",
@@ -1788,7 +1788,7 @@
   ],
   "fwd5": 0.04,
   "fwd10": 0.0363,
-  "fwd20": null
+  "fwd20": 0.0921
  },
  {
   "date": "2026-10-05",
@@ -1804,7 +1804,7 @@
   ],
   "fwd5": 0.0112,
   "fwd10": 0.0416,
-  "fwd20": null
+  "fwd20": 0.1371
  },
  {
   "date": "2026-10-06",
@@ -2339,7 +2339,7 @@
    "2y:boll_s"
   ],
   "fwd5": -0.0898,
-  "fwd10": null,
+  "fwd10": -0.1255,
   "fwd20": null
  },
  {
@@ -2355,7 +2355,7 @@
    "2y:boll_b"
   ],
   "fwd5": 0.0203,
-  "fwd10": null,
+  "fwd10": 0.0242,
   "fwd20": null
  },
  {
@@ -2370,7 +2370,7 @@
    "2y:boll_b"
   ],
   "fwd5": 0.0268,
-  "fwd10": null,
+  "fwd10": 0.0353,
   "fwd20": null
  },
  {
@@ -2385,7 +2385,7 @@
    "2y:rsi_b"
   ],
   "fwd5": -0.0433,
-  "fwd10": null,
+  "fwd10": -0.1581,
   "fwd20": null
  },
  {
@@ -2643,7 +2643,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.1175,
   "fwd10": null,
   "fwd20": null
  },
@@ -2658,7 +2658,7 @@
   "slots": [
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": -0.0392,
   "fwd10": null,
   "fwd20": null
  },
@@ -2673,7 +2673,7 @@
   "slots": [
    "2y:rsi_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.12,
   "fwd10": null,
   "fwd20": null
  },
@@ -2688,7 +2688,7 @@
   "slots": [
    "2y:rsi_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.1114,
   "fwd10": null,
   "fwd20": null
  },
@@ -2853,6 +2853,83 @@
   "signal": "RSI(14)<26",
   "window": "5年+2年",
   "entry_close": 628.87,
+  "slots": [
+   "5y:rsi_s",
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-02",
+  "ticker": "GOOGL",
+  "name": "谷歌",
+  "level": "强买入",
+  "signal": "RSI(14)<26",
+  "window": "5年+2年",
+  "entry_close": 281.64,
+  "slots": [
+   "5y:rsi_s",
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-02",
+  "ticker": "NVDA",
+  "name": "英伟达",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "2年",
+  "entry_close": 202.4,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-02",
+  "ticker": "LEU",
+  "name": "Centrus",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 96.27,
+  "slots": [
+   "2y:boll_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-02",
+  "ticker": "SNOW",
+  "name": "Snowflake",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "2年",
+  "entry_close": 288.49,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-02",
+  "ticker": "CAT",
+  "name": "卡特彼勒",
+  "level": "强买入",
+  "signal": "RSI(14)<26",
+  "window": "5年+2年",
+  "entry_close": 611.06,
   "slots": [
    "5y:rsi_s",
    "2y:rsi_s"
