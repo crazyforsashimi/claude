@@ -1820,7 +1820,7 @@
   ],
   "fwd5": 0.0135,
   "fwd10": 0.0578,
-  "fwd20": null
+  "fwd20": 0.1257
  },
  {
   "date": "2026-10-06",
@@ -1835,7 +1835,7 @@
   ],
   "fwd5": 0.0093,
   "fwd10": 0.016,
-  "fwd20": null
+  "fwd20": 0.0188
  },
  {
   "date": "2026-10-06",
@@ -1851,7 +1851,7 @@
   ],
   "fwd5": 0.0015,
   "fwd10": -0.0085,
-  "fwd20": null
+  "fwd20": -0.0027
  },
  {
   "date": "2026-10-06",
@@ -1866,7 +1866,7 @@
   ],
   "fwd5": -0.0172,
   "fwd10": -0.0504,
-  "fwd20": null
+  "fwd20": -0.025
  },
  {
   "date": "2026-10-06",
@@ -1881,7 +1881,7 @@
   ],
   "fwd5": 0.0174,
   "fwd10": 0.0619,
-  "fwd20": null
+  "fwd20": 0.13
  },
  {
   "date": "2026-10-07",
@@ -2400,7 +2400,7 @@
    "2y:boll_s"
   ],
   "fwd5": -0.0139,
-  "fwd10": null,
+  "fwd10": -0.1308,
   "fwd20": null
  },
  {
@@ -2415,7 +2415,7 @@
    "2y:boll_b"
   ],
   "fwd5": 0.0336,
-  "fwd10": null,
+  "fwd10": 0.0267,
   "fwd20": null
  },
  {
@@ -2430,7 +2430,7 @@
    "2y:rsi_b"
   ],
   "fwd5": -0.0185,
-  "fwd10": null,
+  "fwd10": -0.1378,
   "fwd20": null
  },
  {
@@ -2703,7 +2703,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.1254,
   "fwd10": null,
   "fwd20": null
  },
@@ -2718,7 +2718,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": -0.1186,
   "fwd10": null,
   "fwd20": null
  },
@@ -2933,6 +2933,68 @@
   "slots": [
    "5y:rsi_s",
    "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-03",
+  "ticker": "GOOGL",
+  "name": "谷歌",
+  "level": "强买入",
+  "signal": "RSI(14)<26",
+  "window": "5年+2年",
+  "entry_close": 281.53,
+  "slots": [
+   "5y:rsi_s",
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-03",
+  "ticker": "LEU",
+  "name": "Centrus",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 96.29,
+  "slots": [
+   "2y:boll_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-03",
+  "ticker": "SNOW",
+  "name": "Snowflake",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "2年",
+  "entry_close": 296.61,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-03",
+  "ticker": "CAT",
+  "name": "卡特彼勒",
+  "level": "买入",
+  "signal": "RSI(14)<28",
+  "window": "5年+2年",
+  "entry_close": 625.28,
+  "slots": [
+   "5y:rsi_b",
+   "2y:rsi_b"
   ],
   "fwd5": null,
   "fwd10": null,
