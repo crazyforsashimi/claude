@@ -3308,5 +3308,20 @@
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
+ },
+ {
+  "date": "2026-11-05",
+  "ticker": "GOOGL",
+  "name": "谷歌",
+  "level": "强买入",
+  "signal": "破200日布林",
+  "window": "2年",
+  "entry_close": 282.57,
+  "slots": [
+   "2y:boll_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
  }
 ]
