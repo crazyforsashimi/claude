@@ -1958,7 +1958,7 @@
   ],
   "fwd5": 0.002,
   "fwd10": 0.0111,
-  "fwd20": null
+  "fwd20": -0.0147
  },
  {
   "date": "2026-10-08",
@@ -1973,7 +1973,7 @@
   ],
   "fwd5": -0.0418,
   "fwd10": -0.0226,
-  "fwd20": null
+  "fwd20": -0.0329
  },
  {
   "date": "2026-10-09",
@@ -2475,7 +2475,7 @@
    "2y:rsi_s"
   ],
   "fwd5": 0.0966,
-  "fwd10": null,
+  "fwd10": -0.1639,
   "fwd20": null
  },
  {
@@ -2491,7 +2491,7 @@
    "2y:boll_b"
   ],
   "fwd5": 0.0903,
-  "fwd10": null,
+  "fwd10": -0.0578,
   "fwd20": null
  },
  {
@@ -2506,7 +2506,7 @@
    "2y:rsi_b"
   ],
   "fwd5": -0.0595,
-  "fwd10": null,
+  "fwd10": -0.1964,
   "fwd20": null
  },
  {
@@ -2521,7 +2521,7 @@
    "2y:boll_b"
   ],
   "fwd5": 0.0473,
-  "fwd10": null,
+  "fwd10": -0.0106,
   "fwd20": null
  },
  {
@@ -2536,7 +2536,7 @@
    "2y:boll_b"
   ],
   "fwd5": -0.1223,
-  "fwd10": null,
+  "fwd10": -0.1276,
   "fwd20": null
  },
  {
@@ -2749,7 +2749,7 @@
    "5y:rsi_s",
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": -0.006,
   "fwd10": null,
   "fwd20": null
  },
@@ -2764,7 +2764,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": -0.2375,
   "fwd10": null,
   "fwd20": null
  },
@@ -2780,7 +2780,7 @@
    "5y:rsi_b",
    "2y:rsi_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.1456,
   "fwd10": null,
   "fwd20": null
  },
@@ -3119,6 +3119,191 @@
   "entry_close": 202.12,
   "slots": [
    "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-05",
+  "ticker": "GOOGL",
+  "name": "谷歌",
+  "level": "买入",
+  "signal": "RSI(14)<30",
+  "window": "2年",
+  "entry_close": 282.96,
+  "slots": [
+   "2y:rsi_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-05",
+  "ticker": "NVDA",
+  "name": "英伟达",
+  "level": "买入",
+  "signal": "RSI(14)<28",
+  "window": "5年+2年",
+  "entry_close": 182.69,
+  "slots": [
+   "5y:rsi_b",
+   "2y:rsi_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-05",
+  "ticker": "TSM",
+  "name": "台积电",
+  "level": "买入",
+  "signal": "RSI(14)<28",
+  "window": "2年",
+  "entry_close": 357.95,
+  "slots": [
+   "2y:rsi_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-05",
+  "ticker": "LEU",
+  "name": "Centrus",
+  "level": "强买入",
+  "signal": "RSI(14)<28",
+  "window": "2年",
+  "entry_close": 86.75,
+  "slots": [
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-05",
+  "ticker": "AMD",
+  "name": "超微",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "2年",
+  "entry_close": 413.31,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-05",
+  "ticker": "MU",
+  "name": "美光",
+  "level": "买入",
+  "signal": "RSI(14)<30",
+  "window": "5年+2年",
+  "entry_close": 676.13,
+  "slots": [
+   "5y:rsi_b",
+   "2y:rsi_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-05",
+  "ticker": "SNOW",
+  "name": "Snowflake",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "2年",
+  "entry_close": 271.84,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-05",
+  "ticker": "VST",
+  "name": "Vistra",
+  "level": "买入",
+  "signal": "破150日布林",
+  "window": "5年+2年",
+  "entry_close": 112.67,
+  "slots": [
+   "5y:boll_b",
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-05",
+  "ticker": "GEV",
+  "name": "GE Vernova",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "5年+2年",
+  "entry_close": 772.7,
+  "slots": [
+   "5y:boll_b",
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-05",
+  "ticker": "CAT",
+  "name": "卡特彼勒",
+  "level": "强买入",
+  "signal": "RSI(14)<26",
+  "window": "5年+2年",
+  "entry_close": 560.58,
+  "slots": [
+   "5y:rsi_s",
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-05",
+  "ticker": "QQQ",
+  "name": "纳指100",
+  "level": "强买入",
+  "signal": "RSI(14)<28",
+  "window": "2年",
+  "entry_close": 651.39,
+  "slots": [
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-05",
+  "ticker": "SOXX",
+  "name": "半导体ETF",
+  "level": "买入",
+  "signal": "RSI(14)<30",
+  "window": "5年",
+  "entry_close": 134.14,
+  "slots": [
+   "5y:rsi_b"
   ],
   "fwd5": null,
   "fwd10": null,
