@@ -2126,7 +2126,7 @@
   ],
   "fwd5": -0.1049,
   "fwd10": -0.1162,
-  "fwd20": null
+  "fwd20": -0.0604
  },
  {
   "date": "2026-10-14",
@@ -2141,7 +2141,7 @@
   ],
   "fwd5": -0.0264,
   "fwd10": -0.0502,
-  "fwd20": null
+  "fwd20": -0.1938
  },
  {
   "date": "2026-10-14",
@@ -2157,7 +2157,7 @@
   ],
   "fwd5": 0.0172,
   "fwd10": 0.0506,
-  "fwd20": null
+  "fwd20": 0.056
  },
  {
   "date": "2026-10-14",
@@ -2172,7 +2172,7 @@
   ],
   "fwd5": 0.0123,
   "fwd10": 0.0514,
-  "fwd20": null
+  "fwd20": 0.0544
  },
  {
   "date": "2026-10-14",
@@ -2188,7 +2188,7 @@
   ],
   "fwd5": 0.0344,
   "fwd10": 0.0684,
-  "fwd20": null
+  "fwd20": 0.074
  },
  {
   "date": "2026-10-15",
@@ -2734,7 +2734,7 @@
    "2y:boll_s"
   ],
   "fwd5": -0.1657,
-  "fwd10": null,
+  "fwd10": 0.0631,
   "fwd20": null
  },
  {
@@ -3027,7 +3027,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.0129,
   "fwd10": null,
   "fwd20": null
  },
@@ -3042,7 +3042,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.2743,
   "fwd10": null,
   "fwd20": null
  },
@@ -3057,7 +3057,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.0651,
   "fwd10": null,
   "fwd20": null
  },
@@ -3073,7 +3073,7 @@
    "5y:boll_b",
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.1419,
   "fwd10": null,
   "fwd20": null
  },
@@ -3089,7 +3089,7 @@
    "5y:boll_b",
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.0004,
   "fwd10": null,
   "fwd20": null
  },
@@ -3105,7 +3105,7 @@
    "5y:rsi_s",
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0425,
   "fwd10": null,
   "fwd20": null
  },
@@ -3120,7 +3120,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.1229,
   "fwd10": null,
   "fwd20": null
  },
@@ -3624,6 +3624,52 @@
   "signal": "破200日布林",
   "window": "5年",
   "entry_close": 577.64,
+  "slots": [
+   "5y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-11",
+  "ticker": "GOOGL",
+  "name": "谷歌",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "2年",
+  "entry_close": 295.56,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-11",
+  "ticker": "NVDA",
+  "name": "英伟达",
+  "level": "买入",
+  "signal": "破150日布林",
+  "window": "5年+2年",
+  "entry_close": 177.28,
+  "slots": [
+   "5y:boll_b",
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-11",
+  "ticker": "CAT",
+  "name": "卡特彼勒",
+  "level": "买入",
+  "signal": "破200日布林",
+  "window": "5年",
+  "entry_close": 608.77,
   "slots": [
    "5y:boll_b"
   ],
