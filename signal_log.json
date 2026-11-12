@@ -2203,7 +2203,7 @@
   ],
   "fwd5": -0.1567,
   "fwd10": -0.0753,
-  "fwd20": null
+  "fwd20": -0.137
  },
  {
   "date": "2026-10-15",
@@ -2218,7 +2218,7 @@
   ],
   "fwd5": -0.0498,
   "fwd10": -0.1063,
-  "fwd20": null
+  "fwd20": -0.1695
  },
  {
   "date": "2026-10-15",
@@ -2234,7 +2234,7 @@
   ],
   "fwd5": 0.009,
   "fwd10": 0.0547,
-  "fwd20": null
+  "fwd20": 0.0439
  },
  {
   "date": "2026-10-15",
@@ -2249,7 +2249,7 @@
   ],
   "fwd5": 0.02,
   "fwd10": 0.0683,
-  "fwd20": null
+  "fwd20": 0.0603
  },
  {
   "date": "2026-10-16",
@@ -2750,7 +2750,7 @@
    "2y:rsi_s"
   ],
   "fwd5": -0.006,
-  "fwd10": null,
+  "fwd10": 0.0605,
   "fwd20": null
  },
  {
@@ -2765,7 +2765,7 @@
    "2y:boll_s"
   ],
   "fwd5": -0.2375,
-  "fwd10": null,
+  "fwd10": -0.0668,
   "fwd20": null
  },
  {
@@ -2781,7 +2781,7 @@
    "2y:rsi_b"
   ],
   "fwd5": -0.1456,
-  "fwd10": null,
+  "fwd10": -0.0707,
   "fwd20": null
  },
  {
@@ -3135,7 +3135,7 @@
   "slots": [
    "2y:rsi_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.0669,
   "fwd10": null,
   "fwd20": null
  },
@@ -3151,7 +3151,7 @@
    "5y:rsi_b",
    "2y:rsi_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0952,
   "fwd10": null,
   "fwd20": null
  },
@@ -3166,7 +3166,7 @@
   "slots": [
    "2y:rsi_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.1393,
   "fwd10": null,
   "fwd20": null
  },
@@ -3181,7 +3181,7 @@
   "slots": [
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.224,
   "fwd10": null,
   "fwd20": null
  },
@@ -3196,7 +3196,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.4084,
   "fwd10": null,
   "fwd20": null
  },
@@ -3212,7 +3212,7 @@
    "5y:rsi_b",
    "2y:rsi_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.1741,
   "fwd10": null,
   "fwd20": null
  },
@@ -3227,7 +3227,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.1028,
   "fwd10": null,
   "fwd20": null
  },
@@ -3243,7 +3243,7 @@
    "5y:boll_b",
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.1986,
   "fwd10": null,
   "fwd20": null
  },
@@ -3259,7 +3259,7 @@
    "5y:boll_b",
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.069,
   "fwd10": null,
   "fwd20": null
  },
@@ -3275,7 +3275,7 @@
    "5y:rsi_s",
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0876,
   "fwd10": null,
   "fwd20": null
  },
@@ -3290,7 +3290,7 @@
   "slots": [
    "2y:rsi_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0598,
   "fwd10": null,
   "fwd20": null
  },
@@ -3305,7 +3305,7 @@
   "slots": [
    "5y:rsi_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.1578,
   "fwd10": null,
   "fwd20": null
  },
@@ -3320,7 +3320,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0683,
   "fwd10": null,
   "fwd20": null
  },
@@ -3672,6 +3672,22 @@
   "entry_close": 608.77,
   "slots": [
    "5y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-12",
+  "ticker": "NVDA",
+  "name": "英伟达",
+  "level": "强买入",
+  "signal": "破200日布林",
+  "window": "5年+2年",
+  "entry_close": 165.29,
+  "slots": [
+   "5y:boll_s",
+   "2y:boll_s"
   ],
   "fwd5": null,
   "fwd10": null,
