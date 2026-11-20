@@ -4488,5 +4488,83 @@
   "fwd5": null,
   "fwd10": null,
   "fwd20": null
+ },
+ {
+  "date": "2026-11-20",
+  "ticker": "MU",
+  "name": "美光",
+  "level": "买入",
+  "signal": "RSI(14)<30",
+  "window": "5年+2年",
+  "entry_close": 594.51,
+  "slots": [
+   "5y:rsi_b",
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-20",
+  "ticker": "GS",
+  "name": "高盛",
+  "level": "买入",
+  "signal": "RSI(14)<30",
+  "window": "5年+2年",
+  "entry_close": 790.69,
+  "slots": [
+   "5y:rsi_b",
+   "2y:rsi_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-20",
+  "ticker": "QQQ",
+  "name": "纳指100",
+  "level": "强买入",
+  "signal": "RSI(14)<28",
+  "window": "2年",
+  "entry_close": 608.45,
+  "slots": [
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-20",
+  "ticker": "SPY",
+  "name": "标普500",
+  "level": "强买入",
+  "signal": "RSI(14)<26",
+  "window": "5年+2年",
+  "entry_close": 689.81,
+  "slots": [
+   "5y:rsi_s",
+   "2y:rsi_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-20",
+  "ticker": "SOXX",
+  "name": "半导体ETF",
+  "level": "买入",
+  "signal": "RSI(14)<30",
+  "window": "5年",
+  "entry_close": 123.4,
+  "slots": [
+   "5y:rsi_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
  }
 ]
