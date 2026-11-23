@@ -2645,7 +2645,7 @@
   ],
   "fwd5": -0.1175,
   "fwd10": -0.0971,
-  "fwd20": null
+  "fwd20": -0.116
  },
  {
   "date": "2026-10-26",
@@ -2660,7 +2660,7 @@
   ],
   "fwd5": -0.0392,
   "fwd10": 0.1711,
-  "fwd20": null
+  "fwd20": -0.1336
  },
  {
   "date": "2026-10-26",
@@ -2675,7 +2675,7 @@
   ],
   "fwd5": -0.12,
   "fwd10": -0.1375,
-  "fwd20": null
+  "fwd20": -0.2122
  },
  {
   "date": "2026-10-26",
@@ -2690,7 +2690,7 @@
   ],
   "fwd5": -0.1114,
   "fwd10": -0.0908,
-  "fwd20": null
+  "fwd20": -0.1099
  },
  {
   "date": "2026-10-27",
@@ -3505,7 +3505,7 @@
    "2y:boll_b"
   ],
   "fwd5": -0.0124,
-  "fwd10": null,
+  "fwd10": -0.021,
   "fwd20": null
  },
  {
@@ -3521,7 +3521,7 @@
    "2y:rsi_b"
   ],
   "fwd5": -0.1287,
-  "fwd10": null,
+  "fwd10": -0.0762,
   "fwd20": null
  },
  {
@@ -3536,7 +3536,7 @@
    "2y:boll_b"
   ],
   "fwd5": -0.0161,
-  "fwd10": null,
+  "fwd10": -0.035,
   "fwd20": null
  },
  {
@@ -3551,7 +3551,7 @@
    "5y:boll_b"
   ],
   "fwd5": -0.0486,
-  "fwd10": null,
+  "fwd10": -0.0866,
   "fwd20": null
  },
  {
@@ -3750,7 +3750,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0087,
   "fwd10": null,
   "fwd20": null
  },
@@ -3766,7 +3766,7 @@
    "5y:boll_s",
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0602,
   "fwd10": null,
   "fwd20": null
  },
@@ -3781,7 +3781,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": -0.1133,
   "fwd10": null,
   "fwd20": null
  },
@@ -3796,7 +3796,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0191,
   "fwd10": null,
   "fwd20": null
  },
@@ -3812,7 +3812,7 @@
    "5y:boll_b",
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0089,
   "fwd10": null,
   "fwd20": null
  },
@@ -3827,7 +3827,7 @@
   "slots": [
    "5y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0399,
   "fwd10": null,
   "fwd20": null
  },
@@ -4562,6 +4562,112 @@
   "entry_close": 123.4,
   "slots": [
    "5y:rsi_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-23",
+  "ticker": "NVDA",
+  "name": "英伟达",
+  "level": "买入",
+  "signal": "破150日布林",
+  "window": "5年",
+  "entry_close": 165.05,
+  "slots": [
+   "5y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-23",
+  "ticker": "TSM",
+  "name": "台积电",
+  "level": "买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 363.6,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-23",
+  "ticker": "JPM",
+  "name": "摩根大通",
+  "level": "买入",
+  "signal": "破50日布林",
+  "window": "2年",
+  "entry_close": 316.66,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-23",
+  "ticker": "LEU",
+  "name": "Centrus",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 86.81,
+  "slots": [
+   "2y:boll_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-23",
+  "ticker": "VST",
+  "name": "Vistra",
+  "level": "买入",
+  "signal": "破150日布林",
+  "window": "5年+2年",
+  "entry_close": 123.87,
+  "slots": [
+   "5y:boll_b",
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-23",
+  "ticker": "CAT",
+  "name": "卡特彼勒",
+  "level": "买入",
+  "signal": "破200日布林",
+  "window": "5年",
+  "entry_close": 547.04,
+  "slots": [
+   "5y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-23",
+  "ticker": "QQQ",
+  "name": "纳指100",
+  "level": "买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 651.03,
+  "slots": [
+   "2y:boll_b"
   ],
   "fwd5": null,
   "fwd10": null,
