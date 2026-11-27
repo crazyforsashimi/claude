@@ -2751,7 +2751,7 @@
   ],
   "fwd5": -0.006,
   "fwd10": 0.0605,
-  "fwd20": null
+  "fwd20": -0.0341
  },
  {
   "date": "2026-10-29",
@@ -2766,7 +2766,7 @@
   ],
   "fwd5": -0.2375,
   "fwd10": -0.0668,
-  "fwd20": null
+  "fwd20": -0.2492
  },
  {
   "date": "2026-10-29",
@@ -2782,7 +2782,7 @@
   ],
   "fwd5": -0.1456,
   "fwd10": -0.0707,
-  "fwd20": null
+  "fwd20": -0.1438
  },
  {
   "date": "2026-10-30",
@@ -3690,7 +3690,7 @@
    "2y:boll_s"
   ],
   "fwd5": -0.1022,
-  "fwd10": null,
+  "fwd10": -0.0895,
   "fwd20": null
  },
  {
@@ -3705,7 +3705,7 @@
    "5y:boll_b"
   ],
   "fwd5": -0.1058,
-  "fwd10": null,
+  "fwd10": -0.0719,
   "fwd20": null
  },
  {
@@ -4102,7 +4102,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0122,
   "fwd10": null,
   "fwd20": null
  },
@@ -4118,7 +4118,7 @@
    "5y:boll_s",
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0141,
   "fwd10": null,
   "fwd20": null
  },
@@ -4133,7 +4133,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0053,
   "fwd10": null,
   "fwd20": null
  },
@@ -4148,7 +4148,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.0078,
   "fwd10": null,
   "fwd20": null
  },
@@ -4163,7 +4163,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": -0.0569,
   "fwd10": null,
   "fwd20": null
  },
@@ -4178,7 +4178,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0739,
   "fwd10": null,
   "fwd20": null
  },
@@ -4194,7 +4194,7 @@
    "5y:boll_b",
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": -0.0122,
   "fwd10": null,
   "fwd20": null
  },
@@ -4210,7 +4210,7 @@
    "5y:rsi_b",
    "2y:rsi_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.0379,
   "fwd10": null,
   "fwd20": null
  },
@@ -4225,7 +4225,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.0034,
   "fwd10": null,
   "fwd20": null
  },
@@ -4240,7 +4240,7 @@
   "slots": [
    "2y:boll_s"
   ],
-  "fwd5": null,
+  "fwd5": 0.0084,
   "fwd10": null,
   "fwd20": null
  },
@@ -4255,7 +4255,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.0287,
   "fwd10": null,
   "fwd20": null
  },
@@ -4270,7 +4270,7 @@
   "slots": [
    "2y:boll_b"
   ],
-  "fwd5": null,
+  "fwd5": 0.0174,
   "fwd10": null,
   "fwd20": null
  },
@@ -5047,6 +5047,128 @@
   "signal": "破100日布林",
   "window": "2年",
   "entry_close": 273.1,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-27",
+  "ticker": "GOOGL",
+  "name": "谷歌",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "2年",
+  "entry_close": 274.96,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-27",
+  "ticker": "NVDA",
+  "name": "英伟达",
+  "level": "强买入",
+  "signal": "破200日布林",
+  "window": "5年+2年",
+  "entry_close": 150.49,
+  "slots": [
+   "5y:boll_s",
+   "2y:boll_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-27",
+  "ticker": "TSM",
+  "name": "台积电",
+  "level": "买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 353.34,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-27",
+  "ticker": "LEU",
+  "name": "Centrus",
+  "level": "强买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 85.43,
+  "slots": [
+   "2y:boll_s"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-27",
+  "ticker": "MU",
+  "name": "美光",
+  "level": "买入",
+  "signal": "破100日布林",
+  "window": "2年",
+  "entry_close": 646.95,
+  "slots": [
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-27",
+  "ticker": "VST",
+  "name": "Vistra",
+  "level": "买入",
+  "signal": "破150日布林",
+  "window": "5年+2年",
+  "entry_close": 122.65,
+  "slots": [
+   "5y:boll_b",
+   "2y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-27",
+  "ticker": "CAT",
+  "name": "卡特彼勒",
+  "level": "买入",
+  "signal": "破200日布林",
+  "window": "5年",
+  "entry_close": 561.74,
+  "slots": [
+   "5y:boll_b"
+  ],
+  "fwd5": null,
+  "fwd10": null,
+  "fwd20": null
+ },
+ {
+  "date": "2026-11-27",
+  "ticker": "QQQ",
+  "name": "纳指100",
+  "level": "买入",
+  "signal": "破150日布林",
+  "window": "2年",
+  "entry_close": 650.99,
   "slots": [
    "2y:boll_b"
   ],
