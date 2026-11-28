@@ -2,18 +2,12 @@ name: 每日大机会告警
 
 on:
   schedule:
-    # ⚠️ GitHub 的 schedule 是"尽力而为"：实测本仓库排队延迟 2.1~4.9 小时(中位 2.3~3.8h)，
-    # 且延迟随 UTC 时间推移递减、整点(:00)最拥挤——官方文档明确建议避开整点。
-    # 故：①全部避开整点 ②按实测中位延迟提前排定，让实际落点贴近目标时段 ③加一条收盘后兜底。
-    # 实测基准(2026-09 上旬)：11时段≈+3.8h · 14时段≈+2.8h · 17时段≈+2.3h
-    #
-    # 排定(UTC)          预计实际(UTC)      预计实际(美东 EDT)   用途
-    - cron: "17 11 * * 1-5"   # ≈15:00        ≈11:00 ET        早盘
-    - cron: "23 14 * * 1-5"   # ≈16:50        ≈12:50 ET        中盘
-    - cron: "37 17 * * 1-5"   # ≈19:50        ≈15:50 ET        尾盘
-    - cron: "43 20 * * 1-5"   # ≈23:00        ≈19:00 ET        收盘后确认 + 前三次的兜底
-    # 最后一条最重要：拿到的是**确认收盘价**，盘中扫描的 RSI/破位都可能尾盘收回。
-    # 四条也互为冗余：任一次被丢弃，后面还有(当日去重靠 last_alert.json 指纹，不会重复推送)。
+    # 每日只在**收盘后**扫描一次，信号与上一交易日相同则不推送(逻辑在 daily_alert.py)。
+    # 两条都在美东收盘后(夏令时/冬令时都成立)，避开整点；第二条是兜底——GitHub cron 偶尔会丢，
+    # 同一交易日已处理过则自动跳过，不会重复发。万一落在盘中，脚本也会自动跳过。
+    #   排定(UTC)                      EDT 夏令时        EST 冬令时
+    - cron: "13 22 * * 1-5"   #  主扫描 18:13 ET     17:13 ET
+    - cron: "47 1 * * 2-6"    #  兜底   21:47 ET     20:47 ET（UTC 已是次日，故 2-6）
   workflow_dispatch:   # 允许在 Actions 页手动点「Run workflow」
     inputs:
       test:
@@ -45,7 +39,7 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_TO: ${{ secrets.SMTP_TO }}
           ALERT_TEST: ${{ github.event.inputs.test }}
-          FORCE_ALERT: ${{ github.event_name == 'workflow_dispatch' }}   # 手动 Run workflow → 绕过当日去重，强制发
+          FORCE_ALERT: ${{ github.event_name == 'workflow_dispatch' }}   # 手动 Run workflow → 绕过盘中保护与去重，强制发
         run: |
           python daily_alert.py
           python gen_forward_report.py    # 更新前瞻战绩报告(纯读 signal_log，无需 API)

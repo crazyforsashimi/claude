@@ -458,6 +458,16 @@ def main():
         notify("⚡自选股机会信号提示 · 样式预览（测试）", md, html)
         return
 
+    force = os.environ.get("FORCE_ALERT") == "true"   # 手动 Run workflow：绕过盘中保护与去重
+    # 盘中保护：每日只在收盘后推一次。GitHub cron 会延迟/提前不定，万一落在美东盘中
+    # (当日 K 线未定盘、信号可能尾盘收回)，直接跳过，交给收盘后的那次/兜底那次。
+    from zoneinfo import ZoneInfo
+    from datetime import datetime, time as dtime
+    now_et = datetime.now(ZoneInfo("America/New_York"))
+    if not force and now_et.weekday() < 5 and dtime(9, 30) <= now_et.time() < dtime(16, 10):
+        print(f"美东 {now_et:%H:%M} 尚在盘中，当日收盘价未定 → 跳过（每日只在收盘后推送一次）")
+        return
+
     key = get_key()
     end = pd.Timestamp.today().normalize()
     start = end - pd.DateOffset(years=5)
@@ -576,18 +586,28 @@ def main():
         notify("⚠️ 自选股机会信号·数据不全", warn, f'<div style="font-family:sans-serif;padding:12px;color:#b7791f">{warn}</div>')
         print("⚠️ " + warn)
 
+    # ---- 每日一封 + 无变化跳过 ----
+    # 指纹 = 稳定的信号身份集合(级别|标的|信号|窗口)，不含 RSI/价格等易变数值。
+    # ①同一交易日(asof)已处理过 → 跳过(兜底那次 cron 不会重复发)
+    # ②信号集合与上一交易日完全相同 → 跳过(持续多日的同一批信号只在首日推一次)
+    # 每次都记下本交易日的指纹(含"无信号"=空)，这样信号消失后再出现会被当作新信号照发。
+    digest = "\n".join(sorted(alert_sigs))
+    last = load_last_alert()
+    state = {"asof": asof, "digest": digest}
+    if not force and asof and last.get("asof") == asof:
+        print(f"数据截至 {asof}：本交易日已处理过，跳过（每日只推一次）。")
+        return
+    if n_fail > 3:
+        state = None                     # 数据不全：不记指纹，留给下一次(兜底 cron)重扫
     if not (strong_buy or buy or sell):
         print(f"数据截至 {asof}：今日无大机会信号（失败 {n_fail} 只），不推送。")
+        if state:
+            save_last_alert(state)
         return
-
-    # 当日去重：同一交易日多次扫描，信号指纹与本日上次相同则不重复推送。
-    # 手动 Run workflow(FORCE_ALERT)绕过去重强制发；新增/减少信号→指纹变→照发全量。
-    digest = "\n".join(sorted(alert_sigs))
-    today = date.today().isoformat()
-    force = os.environ.get("FORCE_ALERT") == "true"
-    last = load_last_alert()
-    if not force and last.get("date") == today and last.get("digest") == digest:
-        print(f"数据截至 {asof}：信号与本日上次扫描一致（{len(alert_sigs)} 条），跳过重复推送。")
+    if not force and last.get("digest") == digest:
+        print(f"数据截至 {asof}：信号与上一交易日完全一致（{len(alert_sigs)} 条），无变化跳过推送。")
+        if state:
+            save_last_alert(state)
         return
 
     groups = [(k, v) for k, v in [("strong", strong_buy), ("buy", buy), ("sell", sell)] if v]
@@ -598,7 +618,8 @@ def main():
     md, html = build_messages(asof, groups)
     print(title + "\n" + md)
     notify(title, md, html)
-    save_last_alert({"date": today, "digest": digest})   # 记录本日已发指纹，供后续扫描去重
+    if state:
+        save_last_alert(state)           # 记录本交易日指纹，供次日比较/兜底去重
 
 
 def notify(title: str, md: str, html: str):
